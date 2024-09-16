@@ -3,89 +3,72 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\EmailLog;
+use App\Models\CommissionLog;
+use App\Models\NotificationLog;
 use App\Models\PtcView;
+use App\Models\Referral;
 use App\Models\Transaction;
 use App\Models\UserLogin;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
-    public function transaction()
+    public function transaction(Request $request,$userId = null)
     {
         $pageTitle = 'Transaction Logs';
-        $transactions = Transaction::with('user')->orderBy('id','desc')->paginate(getPaginate());
-        $emptyMessage = 'No transactions.';
-        return view('admin.reports.transactions', compact('pageTitle', 'transactions', 'emptyMessage'));
-    }
 
-    public function transactionSearch(Request $request)
-    {
-        $request->validate(['search' => 'required']);
-        $search = $request->search;
-        $pageTitle = 'Transactions Search - ' . $search;
-        $emptyMessage = 'No transactions.';
+        $remarks = Transaction::distinct('remark')->orderBy('remark')->get('remark');
 
-        $transactions = Transaction::with('user')->whereHas('user', function ($user) use ($search) {
-            $user->where('username', 'like',"%$search%");
-        })->orWhere('trx', $search)->orderBy('id','desc')->paginate(getPaginate());
+        $transactions = Transaction::searchable(['trx','user:username'])->filter(['trx_type','remark'])->dateFilter()->orderBy('id','desc')->with('user');
+        if ($userId) {
+            $transactions = $transactions->where('user_id',$userId);
+        }
+        $transactions = $transactions->paginate(getPaginate());
 
-        return view('admin.reports.transactions', compact('pageTitle', 'transactions', 'emptyMessage','search'));
+        return view('admin.reports.transactions', compact('pageTitle', 'transactions','remarks'));
     }
 
     public function loginHistory(Request $request)
     {
-        if ($request->search) {
-            $search = $request->search;
-            $pageTitle = 'User Login History Search - ' . $search;
-            $emptyMessage = 'No search result found.';
-            $login_logs = UserLogin::whereHas('user', function ($query) use ($search) {
-                $query->where('username', $search);
-            })->orderBy('id','desc')->with('user')->paginate(getPaginate());
-            return view('admin.reports.logins', compact('pageTitle', 'emptyMessage', 'search', 'login_logs'));
-        }
         $pageTitle = 'User Login History';
-        $emptyMessage = 'No users login found.';
-        $login_logs = UserLogin::orderBy('id','desc')->with('user')->paginate(getPaginate());
-        return view('admin.reports.logins', compact('pageTitle', 'emptyMessage', 'login_logs'));
+        $loginLogs = UserLogin::orderBy('id','desc')->searchable(['user:username'])->dateFilter()->with('user')->paginate(getPaginate());
+        return view('admin.reports.logins', compact('pageTitle', 'loginLogs'));
     }
 
     public function loginIpHistory($ip)
     {
-        $pageTitle = 'Login By - ' . $ip;
-        $login_logs = UserLogin::where('user_ip',$ip)->orderBy('id','desc')->with('user')->paginate(getPaginate());
-        $emptyMessage = 'No users login found.';
-        return view('admin.reports.logins', compact('pageTitle', 'emptyMessage', 'login_logs','ip'));
-
+        $pageTitle = 'Login by - ' . $ip;
+        $loginLogs = UserLogin::where('user_ip',$ip)->orderBy('id','desc')->with('user')->paginate(getPaginate());
+        return view('admin.reports.logins', compact('pageTitle', 'loginLogs','ip'));
     }
 
-    public function emailHistory(){
-        $pageTitle = 'Email history';
-        $logs = EmailLog::with('user')->orderBy('id','desc')->paginate(getPaginate());
-        $emptyMessage = 'No data found';
-        return view('admin.reports.email_history', compact('pageTitle', 'emptyMessage','logs'));
+    public function notificationHistory(Request $request){
+        $pageTitle = 'Notification History';
+        $logs = NotificationLog::orderBy('id','desc')->searchable(['user:username'])->dateFilter()->with('user')->paginate(getPaginate());
+        return view('admin.reports.notification_history', compact('pageTitle','logs'));
+    }
+
+    public function emailDetails($id){
+        $pageTitle = 'Email Details';
+        $email = NotificationLog::findOrFail($id);
+        return view('admin.reports.email_details', compact('pageTitle','email'));
     }
 
 
-
-    public function ptcview()
+    public function ptcview(Request $request)
     {
         $pageTitle = 'PTC View Logs';
-        $ptcviews = PtcView::latest()->with(['user','ptc'])->paginate(getPaginate());
-        $emptyMessage = 'No PTC View Yet.';
-        return view('admin.reports.ptcview', compact('pageTitle', 'ptcviews', 'emptyMessage'));
+        $ptcviews = PtcView::searchable(['user:username'])->orderBy('id','desc')->with(['user','ptc'])->paginate(getPaginate());
+        return view('admin.reports.ptcview', compact('pageTitle', 'ptcviews'));
     }
 
-    public function ptcviewSearch(Request $request)
+    public function commissions(Request $request)
     {
-        $request->validate(['search' => 'required']);
-        $search = $request->search;
-        $pageTitle = 'PTC View Search - ' . $search;
-        $emptyMessage = 'No PTC View.'; 
-
-        $ptcviews = PtcView::latest()->with(['user','ptc'])->whereHas('user', function ($user) use ($search) {
-            $user->where('username', 'like',"%$search%");
-        })->paginate(getPaginate());
-        return view('admin.reports.ptcview', compact('pageTitle', 'ptcviews', 'emptyMessage','search'));
+        $pageTitle = 'Referral Commissions';
+        $commissions = CommissionLog::searchable(['trx','userTo:username'])->filter(['type','level'])->dateFilter()->orderBy('id','desc')->with('userTo','userFrom')->paginate(getPaginate());
+        $levels = Referral::max('level');
+        return view('admin.reports.commission',compact('pageTitle','commissions','levels'));
     }
+
+
 }

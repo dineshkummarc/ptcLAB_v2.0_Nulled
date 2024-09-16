@@ -1,124 +1,309 @@
-
-@extends($activeTemplate .'layouts.user')
+@extends($activeTemplate . 'layouts.master')
 @section('content')
-@include($activeTemplate.'breadcrumb')
-<section class="cmn-section">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-12">
-                @if ($errors->any())
-                    @foreach ($errors->all() as $error)
-                        <div>{{$error}}</div>
-                    @endforeach
-                @endif
-            </div>
-
-
-            @foreach($gatewayCurrency as $data)
-                <div class="col-lg-6 col-md-6 col-sm-12 mb-4">
-                    <div class="card">
-                        <div class="card-body b-primary">
-                            <div class="row">
-                                <div class="col-md-5 col-sm-12">
-                                    <img src="{{$data->methodImage()}}" class="card-img-top w-100" alt="{{$data->name}}">
+    @php
+        $planId = null;
+        if ($plan) {
+            $planId = $plan->id;
+            $amount = getAmount(@$plan->price);
+        } else {
+            $amount = old('amount');
+        }
+    @endphp
+    <div class="cmn-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-9">
+                    <form action="{{ route('user.deposit.insert') }}" method="post" class="deposit-form">
+                        @csrf
+                        <input type="hidden" name="currency">
+                        <input type="hidden" name="plan_id" value="{{ @$plan->id }}">
+                        <div class="gateway-card">
+                            <div class="row justify-content-center gy-sm-4 gy-3">
+                                <div class="col-12">
+                                    <h5 class="payment-card-title">@lang('Deposit')</h5>
                                 </div>
-                                <div class="col-md-7 col-sm-12">
-                                    <ul class="list-group text-center">
+                                <div class="col-lg-6">
+                                    <div class="payment-system-list is-scrollable gateway-option-list">
+                                        @if ($plan)
+                                            <label for="account_balance" class="payment-item gateway-option">
+                                                <div class="payment-item__info">
+                                                    <span class="payment-item__check"></span>
+                                                    <span class="payment-item__name">@lang('Account Balance')
+                                                        ({{ showAmount(auth()->user()->balance) }})</span>
+                                                </div>
+                                                <div class="payment-item__thumb">
+                                                    <img class="payment-item__thumb-img" src="{{ getImage(null, avatar: true) }}" alt="@lang('account-balance')">
+                                                </div>
+                                                <input class="payment-item__radio gateway-input" id="account_balance" hidden type="radio" name="gateway"
+                                                    value="wallet" @if (old('gateway')) @checked(old('gateway') == 'wallet') @endif>
+                                            </label>
+                                        @endif
 
 
-                                        <li class="list-group-item">
-                                            {{__($data->name)}}</li>
+                                        @foreach ($gatewayCurrency as $data)
+                                            <label for="{{ titleToKey($data->name) }}"
+                                                class="payment-item @if ($loop->index > 4) d-none @endif gateway-option">
+                                                <div class="payment-item__info">
+                                                    <span class="payment-item__check"></span>
+                                                    <span class="payment-item__name">{{ __($data->name) }}</span>
+                                                </div>
+                                                <div class="payment-item__thumb">
+                                                    <img class="payment-item__thumb-img"
+                                                        src="{{ getImage(getFilePath('gateway') . '/' . $data->method->image) }}" alt="@lang('payment-thumb')">
+                                                </div>
+                                                <input class="payment-item__radio gateway-input" id="{{ titleToKey($data->name) }}" hidden
+                                                    data-gateway='@json($data)' type="radio" name="gateway"
+                                                    value="{{ $data->method_code }}"
+                                                    @if (old('gateway')) @checked(old('gateway') == $data->method_code) @else
+                                        @checked($loop->first) @endif
+                                                    data-min-amount="{{ showAmount($data->min_amount) }}"
+                                                    data-max-amount="{{ showAmount($data->max_amount) }}">
+                                            </label>
+                                        @endforeach
+                                        @if ($gatewayCurrency->count() > 4)
+                                            <button type="button" class="payment-item__btn more-gateway-option">
+                                                <p class="payment-item__btn-text">@lang('Show All Payment Options')</p>
+                                                <span class="payment-item__btn__icon"><i class="fas fa-chevron-down"></i></i></span>
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="payment-system-list p-3">
+                                        <div class="deposit-info">
+                                            <div class="deposit-info__title">
+                                                <p class="text mb-0">@lang('Amount')</p>
+                                            </div>
+                                            <div class="deposit-info__input">
+                                                <div class="deposit-info__input-group input-group">
+                                                    <span class="deposit-info__input-group-text">{{ gs('cur_sym') }}</span>
+                                                    <input type="text" class="form-control form--control amount" name="amount"
+                                                        placeholder="@lang('00.00')" value="{{ $amount }}"
+                                                        @if (@$plan) readonly @endif autocomplete="off">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <hr>
 
-                                        <li class="list-group-item">@lang('Limit')
-                                            : {{showAmount($data->min_amount)}}
-                                            - {{showAmount($data->max_amount)}} {{$general->cur_text}}</li>
+                                        @if (!@$plan)
+                                            <div class="deposit-info hideInfo">
+                                                <div class="deposit-info__title">
+                                                    <p class="text has-icon"> @lang('Limit')
+                                                        <span></span>
+                                                    </p>
+                                                </div>
+                                                <div class="deposit-info__input">
+                                                    <p class="text"><span class="gateway-limit">@lang('0.00')</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        @endif
+                                        <div class="deposit-info hideInfo">
+                                            <div class="deposit-info__title">
+                                                <p class="text has-icon">@lang('Processing Charge')
+                                                    <span data-bs-toggle="tooltip" title="@lang('Processing charge for payment gateways')" class="proccessing-fee-info"><i
+                                                            class="las la-info-circle"></i>
+                                                    </span>
+                                                </p>
+                                            </div>
+                                            <div class="deposit-info__input">
+                                                <p class="text"><span class="processing-fee">@lang('0.00')</span>
+                                                    {{ __(gs('cur_text')) }}
+                                                </p>
+                                            </div>
+                                        </div>
 
-                                        <li class="list-group-item"> @lang('Charge')
-                                            - {{showAmount($data->fixed_charge)}} {{$general->cur_text}}
-                                            + {{showAmount($data->percent_charge)}}%
-                                        </li>
+                                        <div class="deposit-info total-amount pt-3">
+                                            <div class="deposit-info__title">
+                                                <p class="text">@lang('Total')</p>
+                                            </div>
+                                            <div class="deposit-info__input">
+                                                <p class="text"><span class="final-amount">@lang('0.00')</span>
+                                                    {{ __(gs('cur_text')) }}</p>
+                                            </div>
+                                        </div>
 
-                                        <li class="list-group-item">
-                                            <button type="button"  data-id="{{$data->id}}" data-resource="{{$data}}"
-                                            data-base_symbol="{{$data->baseSymbol()}}"
-                                            class=" btn deposit cmn-btn w-100" data-toggle="modal" data-target="#exampleModal">
-                                        @lang('Deposit')</button>
-                                        </li>
-                                    </ul>
+                                        <div class="deposit-info  hideInfo gateway-conversion d-none total-amount pt-2">
+                                            <div class="deposit-info__title">
+                                                <p class="text">@lang('Conversion')
+                                                </p>
+                                            </div>
+                                            <div class="deposit-info__input">
+                                                <p class="text"></p>
+                                            </div>
+                                        </div>
+                                        <div class="deposit-info hideInfo conversion-currency d-none total-amount pt-2">
+                                            <div class="deposit-info__title">
+                                                <p class="text">
+                                                    @lang('In') <span class="gateway-currency"></span>
+                                                </p>
+                                            </div>
+                                            <div class="deposit-info__input">
+                                                <p class="text">
+                                                    <span class="in-currency"></span>
+                                                </p>
+
+                                            </div>
+                                        </div>
+                                        <div class="d-none hideInfo crypto-message mb-3">
+                                            @lang('Conversion with') <span class="gateway-currency"></span> @lang('and final value will Show on next step')
+                                        </div>
+                                        <button type="submit" class="btn btn--base w-100" @disabled(!$planId)>
+                                            @if (@$plan)
+                                                @lang('Confirm Payment')
+                                            @else
+                                                @lang('Confirm Deposit')
+                                            @endif
+                                        </button>
+                                        <div class="info-text pt-3">
+                                            <p class="text">@lang('Ensuring your funds grow safely through our secure deposit process with world-class payment options.')</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </form>
                 </div>
-            @endforeach
-
-
-        </div>
-    </div>
-</section>
-
-
-
-    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <strong class="modal-title method-name" id="exampleModalLabel"></strong>
-                    <a href="javascript:void(0)" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </a>
-                </div>
-                <form action="{{route('user.deposit.insert')}}" method="post">
-                    @csrf
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <input type="hidden" name="currency" class="edit-currency" value="">
-                            <input type="hidden" name="method_code" class="edit-method-code" value="">
-                        </div>
-                        <div class="form-group">
-                            <label>@lang('Enter Amount'):</label>
-                            <div class="input-group">
-                                <input id="amount" type="text" class="form-control form-control-lg" onkeyup="this.value = this.value.replace (/^\.|[^\d\.]/g, '')" name="amount" placeholder="0.00" required=""  value="{{old('amount')}}">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text currency-addon addon-bg">{{$general->cur_text}}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">@lang('Close')</button>
-                        <button type="submit" class="btn btn-primary">@lang('Confirm')</button>
-                    </div>
-                </form>
             </div>
         </div>
     </div>
-@stop
-
-
+@endsection
 
 @push('script')
     <script>
-        (function ($,document) {
-            "use strict";
-            $(document).ready(function(){
-
-                $('.deposit').on('click', function () {
-                    var id = $(this).data('id');
-                    var result = $(this).data('resource');
-                    var baseSymbol = "{{$general->cur_text}}";
-                    // var baseSymbol = $(this).data('base_symbol');
-
-                    $('.method-name').text(`@lang('Payment By ') ${result.name}`);
-                    // $('.currency-addon').text(`${result.currency}`);
-                    $('.currency-addon').text(baseSymbol);
+        "use strict";
+        (function($) {
 
 
-                    $('.edit-currency').val(result.currency);
-                    $('.edit-method-code').val(result.method_code);
+            var amount = parseFloat($('.amount').val() || 0);
+            var plan = "{{ @$planId }}"
+            var gateway, minAmount, maxAmount;
 
-                });
+
+
+            function gatewayChange() {
+
+                let gatewayElement = $('.gateway-input:checked');
+                let methodCode = gatewayElement.val();
+
+                let gatewayValue = $('.gateway-input:checked').val();
+
+                if (gatewayValue == 'wallet') {
+                    @if (auth()->user()->balance < @$plan->price)
+                        $(".deposit-form button[type=submit]").attr('disabled', true);
+                    @else
+                        $(".deposit-form button[type=submit]").removeAttr('disabled');
+                    @endif
+                    var totalAmount = parseFloat('{{ @$plan->price }}');
+                    $('.hideInfo').addClass('d-none')
+                    $(".final-amount").text(totalAmount.toFixed(2));
+                } else {
+                    $(".deposit-form button[type=submit]").removeAttr('disabled');
+                    $('.hideInfo').removeClass('d-none')
+
+                    gateway = gatewayElement.data('gateway');
+                    minAmount = gatewayElement.data('min-amount');
+                    maxAmount = gatewayElement.data('max-amount');
+                }
+                let processingFeeInfo =
+                    `${parseFloat(gateway.percent_charge).toFixed(2)}% with ${parseFloat(gateway.fixed_charge).toFixed(2)} {{ __(gs('cur_text')) }} charge for payment gateway processing fees`
+                $(".proccessing-fee-info").attr("data-bs-original-title", processingFeeInfo);
+                calculation();
+            }
+
+
+
+
+            $('.amount').on('input', function(e) {
+                amount = parseFloat($(this).val());
+
+                if (!amount) {
+                    amount = 0;
+                }
+                calculation();
             });
-        })(jQuery,document);
+
+
+            $('.gateway-input').on('change', function(e) {
+                gatewayChange();
+            });
+
+
+
+            gatewayChange();
+
+
+            $(".more-gateway-option").on("click", function(e) {
+                let paymentList = $(".gateway-option-list");
+                paymentList.find(".gateway-option").removeClass("d-none");
+                $(this).addClass('d-none');
+                paymentList.animate({
+                    scrollTop: (paymentList.height() - 60)
+                }, 'slow');
+            });
+
+            function calculation() {
+                if (!gateway) return;
+
+
+                if (!plan) {
+                    $(".gateway-limit").text(minAmount + " - " + maxAmount);
+                }
+
+
+                let percentCharge = 0;
+                let fixedCharge = 0;
+                let totalPercentCharge = 0;
+
+                if (amount) {
+                    percentCharge = parseFloat(gateway.percent_charge);
+
+                    fixedCharge = parseFloat(gateway.fixed_charge);
+                    totalPercentCharge = parseFloat(amount / 100 * percentCharge);
+                }
+
+                let totalCharge = parseFloat(totalPercentCharge + fixedCharge);
+                let totalAmount = parseFloat((amount || 0) + totalPercentCharge + fixedCharge);
+
+                $(".final-amount").text(totalAmount.toFixed(2));
+                $(".processing-fee").text(totalCharge.toFixed(2));
+                $("input[name=currency]").val(gateway.currency);
+                $(".gateway-currency").text(gateway.currency);
+
+                @if (!$planId)
+                    if (amount < Number(gateway.min_amount) || amount > Number(gateway.max_amount)) {
+                        $(".deposit-form button[type=submit]").attr('disabled', true);
+                    } else {
+                        $(".deposit-form button[type=submit]").removeAttr('disabled');
+                    }
+                @endif
+
+                if (gateway.currency != "{{ gs('cur_text') }}" && gateway.method.crypto != 1) {
+                    $('.deposit-form').addClass('adjust-height')
+
+                    $(".gateway-conversion, .conversion-currency").removeClass('d-none');
+                    $(".gateway-conversion").find('.deposit-info__input .text').html(
+                        `1 {{ __(gs('cur_text')) }} = <span class="rate">${parseFloat(gateway.rate).toFixed(2)}</span>  <span class="method_currency">${gateway.currency}</span>`
+                    );
+                    $('.in-currency').text(parseFloat(totalAmount * gateway.rate).toFixed(gateway.method.crypto == 1 ?
+                        8 : 2))
+                } else {
+                    $(".gateway-conversion, .conversion-currency").addClass('d-none');
+                    $('.deposit-form').removeClass('adjust-height')
+                }
+
+                if (gateway.method.crypto == 1) {
+                    $('.crypto-message').removeClass('d-none');
+                } else {
+                    $('.crypto-message').addClass('d-none');
+                }
+            }
+
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            })
+            $('.gateway-input').change();
+        })(jQuery);
     </script>
 @endpush

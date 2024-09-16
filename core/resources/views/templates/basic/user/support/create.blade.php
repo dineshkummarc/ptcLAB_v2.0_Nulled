@@ -1,77 +1,48 @@
-
-@extends($activeTemplate .'layouts.user')
+@extends($activeTemplate.'layouts.master')
 @section('content')
-    @include($activeTemplate.'breadcrumb')
-    <section class="cmn-section">
+<div class="cmn-section">
     <div class="container">
-        <div class="card">
-            <div class="card-header">
-                <div class="col-md-12 mb-30">
-                    <ul class="right">
-                        <li>
-                            <a href="{{route('ticket') }}" class="btn float-right cmn-btn" data-toggle="tooltip" data-placement="top" title="@lang('My Support Ticket')">
-                                <i class="fa fa-eye"></i> @lang('See All')
-                            </a>
-                        </li>
-                    </ul>
+        <div class="row justify-content-center">
+            <div class="col-md-12">
+                <div class="text-end">
+                    <a href="{{route('ticket.index') }}" class="btn btn--sm btn--base mb-3">@lang('My Support Ticket')</a>
                 </div>
-            </div>
-            <div class="card-body">
-                <div class="row mb-60-80">
-                    <div class="col-md-12 mb-30">
-                        <form action="{{route('ticket.store')}}" role="form" method="post" enctype="multipart/form-data">
-                            @csrf
-                            <div class="row ">
-                                <div class="form-group col-md-6">
-                                    <label for="name">@lang('Name')</label>
-                                    <input type="text"  name="name" value="{{$user->firstname . ' '.$user->lastname}}" class="form-control form-control-lg" placeholder="@lang('Enter Name')" required readonly>
-                                </div>
+                <div class="card custom--card">
+                    <div class="card-header">
+                        <h5 class="text-white">{{ __($pageTitle) }}</h5>
+                    </div>
 
-                                <div class="form-group col-md-6">
-                                    <label for="email">@lang('Email address')</label>
-                                    <input type="email"  name="email" value="{{$user->email}}" class="form-control form-control-lg" placeholder="@lang('Enter your Email')" required readonly>
-                                </div>
-                            </div>
+                    <div class="card-body">
+                        <form  action="{{route('ticket.store')}}" class="disableSubmission" method="post" enctype="multipart/form-data">
+                            @csrf
                             <div class="row">
                                 <div class="form-group col-md-6">
-                                    <label for="website">@lang('Subject')</label>
-                                    <input type="text" name="subject" value="{{old('subject')}}" class="form-control form-control-lg" placeholder="@lang('Subject')" >
+                                    <label class="form-label">@lang('Subject')</label>
+                                    <input type="text" name="subject" value="{{old('subject')}}" class="form-control form--control" required>
                                 </div>
                                 <div class="form-group col-md-6">
-                                    <label for="priority">@lang('Priority')</label>
-                                    <select name="priority" class="form-control form-control-lg">
+                                    <label class="form-label">@lang('Priority')</label>
+                                    <select name="priority" class="form-control select2-basic" required data-minimum-results-for-search="-1">
                                         <option value="3">@lang('High')</option>
                                         <option value="2">@lang('Medium')</option>
                                         <option value="1">@lang('Low')</option>
                                     </select>
                                 </div>
-                            </div>
-                            <div class="row">
                                 <div class="col-12 form-group">
-                                    <label for="inputMessage">@lang('Message')</label>
-                                    <textarea name="message" id="inputMessage" rows="12" class="form-control">{{old('message')}}</textarea>
+                                    <label class="form-label">@lang('Message')</label>
+                                    <textarea name="message" id="inputMessage" rows="6" class="form-control form--control" required>{{old('message')}}</textarea>
                                 </div>
-                            </div>
-                            <div class="row form-group">
-                                <div class="col-sm-12">
-                                    <label for="inputAttachments">@lang('Attachments')</label>
+
+
+                                <div class="col-md-9">
+                                    <button type="button" class="btn btn--base btn-sm addAttachment my-2"> <i class="fas fa-plus"></i> @lang('Add Attachment') </button>
+                                    <p class="mb-2"><span class="text--info">@lang('Max 5 files can be uploaded | Maximum upload size is '.convertToReadableSize(ini_get('upload_max_filesize')) .' | Allowed File Extensions: .jpg, .jpeg, .png, .pdf, .doc, .docx')</span></p>
+                                    <div class="row fileUploadsContainer">
+                                    </div>
                                 </div>
-                                <div class="col-9 file-upload">
-                                    <input type="file" name="attachments[]" id="inputAttachments" class="form-control form-control" />
-                                    <div id="fileUploadsContainer"></div>
-                                </div>
-                                <div class="col-3">
-                                    <button type="button" class="btn cmn-btn extraTicketAttachment">
-                                        <i class="fa fa-plus"></i>
+                                <div class="col-md-3">
+                                    <button class="btn btn--base w-100 my-2" type="submit"><i class="las la-paper-plane"></i> @lang('Submit')
                                     </button>
-                                </div>
-                                <div class="col-sm-12 ticket-attachments-message text-muted">
-                                    @lang("Allowed File Extensions: .jpg, .jpeg, .png, .pdf, .doc, .docx")
-                                </div>
-                            </div>
-                            <div class="row form-group justify-content-center">
-                                <div class="col-md-12">
-                                    <button class="btn cmn-btn w-100 bg-3  text-center mt-3" type="submit" id="recaptcha" >&nbsp;@lang('Submit Now')</button>
                                 </div>
                             </div>
                         </form>
@@ -80,31 +51,61 @@
             </div>
         </div>
     </div>
-</section>
+</div>
 @endsection
 
 @push('style')
     <style>
-        .editor-statusbar{
-            display: none;
-        }
-        .text-xs-center {
-            text-align: center;
-        }
-
-        .g-recaptcha {
-            display: inline-block;
+        .input-group-text:focus{
+            box-shadow: none !important;
         }
     </style>
 @endpush
+
 @push('script')
     <script>
         (function ($) {
             "use strict";
-            $('.extraTicketAttachment').click(function(){
-                $("#fileUploadsContainer").append('<input type="file" name="attachments[]" class="form-control form-control mt-2" required />')
+            var fileAdded = 0;
+            $('.addAttachment').on('click',function(){
+                fileAdded++;
+                if (fileAdded == 5) {
+                    $(this).attr('disabled',true)
+                }
+                $(".fileUploadsContainer").append(`
+                    <div class="col-lg-4 col-md-12 removeFileInput">
+                        <div class="form-group">
+                            <div class="input-group">
+                                <input type="file" name="attachments[]" class="form-control" accept=".jpeg,.jpg,.png,.pdf,.doc,.docx" required>
+                                <button type="button" class="input-group-text removeFile bg--danger border--danger"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `)
+            });
+            $(document).on('click','.removeFile',function(){
+                $('.addAttachment').removeAttr('disabled',true)
+                fileAdded--;
+                $(this).closest('.removeFileInput').remove();
             });
         })(jQuery);
-
     </script>
+@endpush
+
+
+
+@push('style-lib')
+    <link rel="stylesheet" href="{{ asset('assets/global/css/select2.min.css') }}">
+@endpush
+
+@push('script-lib')
+    <script src="{{ asset('assets/global/js/select2.min.js') }}"></script>
+@endpush
+
+@push('style')
+    <style>
+        span.selection{
+            width: 100%;
+        }
+    </style>
 @endpush

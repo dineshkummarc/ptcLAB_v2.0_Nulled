@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Gateway\Paystack;
 
+use App\Constants\Status;
 use App\Models\Deposit;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Gateway\PaymentController;
 use Illuminate\Http\Request;
-use Auth;
 
 class ProcessController extends Controller
 {
@@ -22,8 +22,8 @@ class ProcessController extends Controller
 
 
         $send['key'] = $paystackAcc->public_key;
-        $send['email'] = Auth::user()->email;
-        $send['amount'] = $deposit->final_amo * 100;
+        $send['email'] = auth()->user()->email;
+        $send['amount'] = $deposit->final_amount * 100;
         $send['currency'] = $deposit->method_currency;
         $send['ref'] = $deposit->trx;
         $send['view'] = 'user.payment.'.$alias;
@@ -58,21 +58,21 @@ class ProcessController extends Controller
 
             if ($result) {
                 if ($result['data']) {
-                    
+
                     $deposit->detail = $result['data'];
                     $deposit->save();
-                    
+
                     if ($result['data']['status'] == 'success') {
-                        
+
                         $am = $result['data']['amount']/100;
-                        $sam = round($deposit->final_amo, 2);
-      
-                        if ($am == $sam && $result['data']['currency'] == $deposit->method_currency  && $deposit->status == '0') {
-                            PaymentController::userDataUpdate($deposit->trx); 
-                            $notify[] = ['success', 'Payment captured successfully.'];
-                            return redirect()->route(gatewayRedirectUrl(true))->withNotify($notify);
+                        $sam = round($deposit->final_amount, 2);
+
+                        if ($am == $sam && $result['data']['currency'] == $deposit->method_currency  && $deposit->status == Status::PAYMENT_INITIATE) {
+                            PaymentController::userDataUpdate($deposit);
+                            $notify[] = ['success', 'Payment captured successfully'];
+                            return redirect($deposit->success_url)->withNotify($notify);
                         } else {
-                            $notify[] = ['error', 'Less amount paid. Please contact with admin'];
+                            $notify[] = ['error', 'Less amount paid. Please contact with admin.'];
                         }
                     } else {
                         $notify[] = ['error', $result['data']['gateway_response']];
@@ -86,6 +86,6 @@ class ProcessController extends Controller
         } else {
             $notify[] = ['error', 'Something went wrong while executing'];
         }
-        return redirect()->route(gatewayRedirectUrl())->withNotify($notify);
+        return back()->withNotify($notify);
     }
 }

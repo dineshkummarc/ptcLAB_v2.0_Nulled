@@ -2,14 +2,18 @@
 
 namespace App\Models;
 
+use App\Constants\Status;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
 class Withdrawal extends Model
 {
-    protected $guarded = ['id'];
-
     protected $casts = [
         'withdraw_information' => 'object'
+    ];
+
+    protected $hidden = [
+        'withdraw_information'
     ];
 
     public function user()
@@ -22,18 +26,33 @@ class Withdrawal extends Model
         return $this->belongsTo(WithdrawMethod::class, 'method_id');
     }
 
-    public function scopePending()
+    public function statusBadge(): Attribute
     {
-        return $this->where('status', 2);
+        return new Attribute(function(){
+            $html = '';
+            if($this->status == Status::PAYMENT_PENDING){
+                $html = '<span class="badge badge--warning">'.trans('Pending').'</span>';
+            }elseif($this->status == Status::PAYMENT_SUCCESS){
+                $html = '<span><span class="badge badge--success">'.trans('Approved').'</span><br>'.diffForHumans($this->updated_at).'</span>';
+            }elseif($this->status == Status::PAYMENT_REJECT){
+                $html = '<span><span class="badge badge--danger">'.trans('Rejected').'</span><br>'.diffForHumans($this->updated_at).'</span>';
+            }
+            return $html;
+        });
     }
 
-    public function scopeApproved()
+    public function scopePending($query)
     {
-        return $this->where('status', 1);
+        return $query->where('status', Status::PAYMENT_PENDING);
     }
 
-    public function scopeRejected()
+    public function scopeApproved($query)
     {
-        return $this->where('status', 3);
+        return $query->where('status', Status::PAYMENT_SUCCESS);
+    }
+
+    public function scopeRejected($query)
+    {
+        return $query->where('status', Status::PAYMENT_REJECT);
     }
 }

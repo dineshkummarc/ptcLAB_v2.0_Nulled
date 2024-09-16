@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+
 use Illuminate\Database\Eloquent\Model;
 
 class PtcView extends Model
 {
-    protected $guarded = ['id'];
 
 
     public function user()

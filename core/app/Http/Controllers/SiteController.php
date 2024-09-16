@@ -1,214 +1,191 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use App\Constants\Status;
 use App\Models\AdminNotification;
 use App\Models\Frontend;
+use App\Models\GatewayCurrency;
 use App\Models\Language;
 use App\Models\Page;
-use App\Models\SupportAttachment;
+use App\Models\Plan;
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 
 
 class SiteController extends Controller
 {
-    public function __construct(){
-        $this->activeTemplate = activeTemplate();
-    }
-
-    public function index(){
-        $activeTemplate = activeTemplate();
-        $count = Page::where('tempname',$activeTemplate)->where('slug','home')->count();
-        if($count == 0){
-            $in['tempname'] = $activeTemplate;
-            $in['name'] = 'HOME';
-            $in['slug'] = 'home';
-            Page::create($in);
-        }
-        
-        $data['page_title'] = 'Home';
-        $data['sections'] = Page::where('tempname',$activeTemplate)->where('slug','home')->firstOrFail();
-        return view($activeTemplate . 'home', $data);
-    }
-
-   public function blog()
+    public function index()
     {
-        $activeTemplate = activeTemplate();
-        $count = Page::where('tempname',$activeTemplate)->where('slug','blog')->count();
-        if($count == 0){
-            $in['tempname'] = $activeTemplate;
-            $in['name'] = 'Blog';
-            $in['slug'] = 'blog';
-            Page::create($in);
+        $reference = @$_GET['reference'];
+        if ($reference) {
+            session()->put('reference', $reference);
         }
-        $data['page_title'] = 'Blog';
-        $data['sections'] = Page::where('tempname',$activeTemplate)->where('slug','blog')->firstOrFail();
-        $data['blogs'] = Frontend::where('data_keys','blog.element')->orderBy('id','desc')->paginate(getPaginate());
-        return view($activeTemplate . 'blog.blogs', $data);
+
+        $pageTitle = 'Home';
+        $sections = Page::where('tempname', activeTemplate())->where('slug', '/')->first();
+        $seoContents = $sections->seo_content;
+        $seoImage = @$seoContents->image ? getImage(getFilePath('seo') . '/' . @$seoContents->image, getFileSize('seo')) : null;
+        return view('Template::home', compact('pageTitle', 'sections', 'seoContents', 'seoImage'));
     }
 
-    public function blogDetail($id)
-    {
-        $page_title = "Blog Details";
-        $blog = Frontend::findOrFail($id);
-        if(!$blog || $blog->data_keys != 'blog.element'){
-            return view('errors.404');
-        }
-        $blog->increment('view');
-        $blogs = Frontend::where('data_keys','blog.element')->get();
-        return view(activeTemplate() . 'blog.details', compact('page_title','blog','blogs'));
-    }
-
-    public function about()
-    {
-        $activeTemplate = activeTemplate();
-        $count = Page::where('tempname',$activeTemplate)->where('slug','about')->count();
-        if($count == 0){
-            $in['tempname'] = $activeTemplate;
-            $in['name'] = 'About';
-            $in['slug'] = 'about';
-            Page::create($in);
-        }
-        $data['page_title'] = 'About';
-        $data['sections'] = Page::where('tempname',$activeTemplate)->where('slug','about')->firstOrFail();
-        return view($activeTemplate . 'about', $data);
-    }
-
-    
     public function pages($slug)
     {
-        $activeTemplate = activeTemplate();
-        $page = Page::where('tempname',$activeTemplate)->where('slug',$slug)->firstOrFail();
-        $data['page_title'] = $page->name;
-        $data['sections'] = $page;
-        return view($activeTemplate . 'pages', $data);
+        $page = Page::where('tempname', activeTemplate())->where('slug', $slug)->firstOrFail();
+        $pageTitle = $page->name;
+        $sections = $page->secs;
+        $seoContents = $page->seo_content;
+        $seoImage = @$seoContents->image ? getImage(getFilePath('seo') . '/' . @$seoContents->image, getFileSize('seo')) : null;
+        return view('Template::pages', compact('pageTitle', 'sections', 'seoContents', 'seoImage'));
     }
+
+
+    public function plans()
+    {
+        $pageTitle       = 'Plans';
+        $plans           = Plan::where('status', 1)->get();
+        $gatewayCurrency = GatewayCurrency::whereHas('method', function ($gate) {
+            $gate->where('status', 1);
+        })->with('method')->orderby('name')->get();
+        $sections = Page::where('tempname', activeTemplate())->where('slug', 'plans')->first();
+        return view('Template::plans', compact('pageTitle', 'plans', 'sections', 'gatewayCurrency'));
+    }
+
 
 
     public function contact()
     {
-        $activeTemplate = activeTemplate();
-        $count = Page::where('tempname',$activeTemplate)->where('slug','contact')->count();
-        if($count == 0){
-            $in['tempname'] = $activeTemplate;
-            $in['name'] = 'Contact';
-            $in['slug'] = 'contact';
-            Page::create($in);
-        }
-        $data['page_title'] = 'Contact';
-        $data['sections'] = Page::where('tempname',$activeTemplate)->where('slug','contact')->firstOrFail();
-        return view($activeTemplate . 'contact', $data);
+        $pageTitle = "Contact Us";
+        $user = auth()->user();
+        $sections = Page::where('tempname', activeTemplate())->where('slug', 'contact')->first();
+        $seoContents = $sections->seo_content;
+        $seoImage = @$seoContents->image ? getImage(getFilePath('seo') . '/' . @$seoContents->image, getFileSize('seo')) : null;
+        return view('Template::contact', compact('pageTitle', 'user', 'sections', 'seoContents', 'seoImage'));
     }
 
 
     public function contactSubmit(Request $request)
     {
-        $ticket = new SupportTicket();
-        $message = new SupportMessage();
-
-        $imgs = $request->file('attachments');
-        $allowedExts = array('jpg', 'png', 'jpeg', 'pdf');
-
-        $this->validate($request, [
-            'attachments' => [
-                'sometimes',
-                'max:4096',
-                function ($attribute, $value, $fail) use ($imgs, $allowedExts) {
-                    foreach ($imgs as $img) {
-                        $ext = strtolower($img->getClientOriginalExtension());
-                        if (($img->getSize() / 1000000) > 2) {
-                            return $fail("Images MAX  2MB ALLOW!");
-                        }
-                        if (!in_array($ext, $allowedExts)) {
-                            return $fail("Only png, jpg, jpeg, pdf images are allowed");
-                        }
-                    }
-                    if (count($imgs) > 5) {
-                        return $fail("Maximum 5 images can be uploaded");
-                    }
-                },
-            ],
-            'name' => 'required|max:191',
-            'email' => 'required|max:191',
-            'subject' => 'required|max:100',
+        $request->validate([
+            'name' => 'required',
+            'email' => 'required',
+            'subject' => 'required|string|max:255',
             'message' => 'required',
         ]);
 
+        $request->session()->regenerateToken();
+
+        if (!verifyCaptcha()) {
+            $notify[] = ['error', 'Invalid captcha provided'];
+            return back()->withNotify($notify);
+        }
 
         $random = getNumber();
 
-        $ticket->user_id = auth()->id();
+        $ticket = new SupportTicket();
+        $ticket->user_id = auth()->id() ?? 0;
         $ticket->name = $request->name;
         $ticket->email = $request->email;
+        $ticket->priority = Status::PRIORITY_MEDIUM;
 
 
         $ticket->ticket = $random;
         $ticket->subject = $request->subject;
         $ticket->last_reply = Carbon::now();
-        $ticket->status = 0;
+        $ticket->status = Status::TICKET_OPEN;
         $ticket->save();
 
-        $message->supportticket_id = $ticket->id;
+        $adminNotification = new AdminNotification();
+        $adminNotification->user_id = auth()->user() ? auth()->user()->id : 0;
+        $adminNotification->title = 'A new contact message has been submitted';
+        $adminNotification->click_url = urlPath('admin.ticket.view', $ticket->id);
+        $adminNotification->save();
+
+        $message = new SupportMessage();
+        $message->support_ticket_id = $ticket->id;
         $message->message = $request->message;
         $message->save();
 
-        $path = imagePath()['ticket']['path'];
+        $notify[] = ['success', 'Ticket created successfully!'];
 
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $image) {
-                try {
-                    SupportAttachment::create([
-                        'support_message_id' => $message->id,
-                        'image' => uploadImage($image, $path),
-                    ]);
-                } catch (\Exception $exp) {
-                    $notify[] = ['error', 'Could not upload your ' . $image];
-                    return back()->withNotify($notify)->withInput();
-                }
-
-            }
-        }
-        $notify[] = ['success', 'ticket created successfully!'];
-
-        return redirect()->route('ticket.view', [$ticket->ticket])->withNotify($notify);
+        return to_route('ticket.view', [$ticket->ticket])->withNotify($notify);
     }
 
-    public function lang($lang){
+    public function policyPages($slug)
+    {
+        $policy = Frontend::where('slug', $slug)->where('data_keys', 'policy_pages.element')->firstOrFail();
+        $pageTitle = $policy->data_values->title;
+        $seoContents = $policy->seo_content;
+        $seoImage = @$seoContents->image ? frontendImage('policy_pages', $seoContents->image, getFileSize('seo'), true) : null;
+        return view('Template::policy', compact('policy', 'pageTitle', 'seoContents', 'seoImage'));
+    }
+
+    public function changeLanguage($lang = null)
+    {
         $language = Language::where('code', $lang)->first();
         if (!$language) $lang = 'en';
         session()->put('lang', $lang);
-        return redirect()->back();
+        return back();
     }
 
-    public function policy($id,$slug){
-        $item = Frontend::where('id',$id)->where('data_keys','footer_link.element')->firstOrFail();
-        $page_title = $item->data_values->title;
-        return view(activeTemplate().'policy',compact('page_title','item'));
+    public function blog()
+    {
+        $pageTitle = 'Blog';
+        $sections  = Page::where('tempname', activeTemplate())->where('slug', 'blog')->firstOrFail();
+        $blogs     = Frontend::where('data_keys', 'blog.element')->where('tempname', activeTemplateName())->orderBy('id', 'desc')->paginate(getPaginate(12));
+
+        $seoContents = @$sections->seo_content;
+        $seoImage    = @$seoContents->image ? getImage(getFilePath('seo') . '/' . @$seoContents->image, getFileSize('seo')) : null;
+        return view('Template::blog.blogs', compact('pageTitle', 'sections', 'blogs','seoContents','seoImage'));
     }
 
-    public function cookieAccept(){
-        session()->put('cookie_accepted',true);
-        return response()->json('Cookie accepted successfully');
+
+    public function blogDetails($slug)
+    {
+        $blog        = Frontend::where('slug', $slug)->where('data_keys', 'blog.element')->firstOrFail();
+        $latests     = Frontend::where('data_keys', 'blog.element')->where('tempname', activeTemplateName())->where('id', '!=', $blog->id)->orderBy('id', 'desc')->limit(5)->get();
+        $popular     = Frontend::where('data_keys', 'blog.element')->where('tempname', activeTemplateName())->where('id', '!=', $blog->id)->orderBy('view', 'desc')->limit(5)->get();
+        $pageTitle   = $blog->data_values->title;
+        $seoContents = $blog->seo_content;
+        $seoImage    = @$seoContents->image ? frontendImage('blog', $seoContents->image, getFileSize('seo'), true) : null;
+        return view('Template::blog.details', compact('blog', 'pageTitle', 'seoContents', 'seoImage', 'latests', 'popular',));
     }
 
-    public function placeholderImage($size = null){
-        $imgWidth = explode('x',$size)[0];
-        $imgHeight = explode('x',$size)[1];
+
+    public function cookieAccept()
+    {
+        Cookie::queue('gdpr_cookie', gs('site_name'), 43200);
+    }
+
+    public function cookiePolicy()
+    {
+        $cookieContent = Frontend::where('data_keys', 'cookie.data')->first();
+        abort_if($cookieContent->data_values->status != Status::ENABLE, 404);
+        $pageTitle = 'Cookie Policy';
+        $cookie = Frontend::where('data_keys', 'cookie.data')->first();
+        return view('Template::cookie', compact('pageTitle', 'cookie'));
+    }
+
+    public function placeholderImage($size = null)
+    {
+        $imgWidth = explode('x', $size)[0];
+        $imgHeight = explode('x', $size)[1];
         $text = $imgWidth . '×' . $imgHeight;
-        $fontFile = realpath('assets/font') . DIRECTORY_SEPARATOR . 'RobotoMono-Regular.ttf';
+        $fontFile = realpath('assets/font/solaimanLipi_bold.ttf');
         $fontSize = round(($imgWidth - 50) / 8);
         if ($fontSize <= 9) {
             $fontSize = 9;
         }
-        if($imgHeight < 100 && $fontSize > 30){
+        if ($imgHeight < 100 && $fontSize > 30) {
             $fontSize = 30;
         }
 
         $image     = imagecreatetruecolor($imgWidth, $imgHeight);
         $colorFill = imagecolorallocate($image, 100, 100, 100);
-        $bgFill    = imagecolorallocate($image, 175, 175, 175);
+        $bgFill    = imagecolorallocate($image, 255, 255, 255);
         imagefill($image, 0, 0, $bgFill);
         $textBox = imagettfbbox($fontSize, 0, $fontFile, $text);
         $textWidth  = abs($textBox[4] - $textBox[0]);
@@ -221,4 +198,13 @@ class SiteController extends Controller
         imagedestroy($image);
     }
 
+    public function maintenance()
+    {
+        $pageTitle = 'Maintenance Mode';
+        if (gs('maintenance_mode') == Status::DISABLE) {
+            return to_route('home');
+        }
+        $maintenance = Frontend::where('data_keys', 'maintenance.data')->first();
+        return view('Template::maintenance', compact('pageTitle', 'maintenance'));
+    }
 }

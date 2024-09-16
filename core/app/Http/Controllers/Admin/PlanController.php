@@ -2,31 +2,31 @@
 
 namespace App\Http\Controllers\Admin;
 
-use Illuminate\Http\Request;
+use App\Constants\Status;
 use App\Http\Controllers\Controller;
 use App\Models\Plan;
 use App\Models\Referral;
+use Illuminate\Http\Request;
 
 class PlanController extends Controller
 {
-
     public function index()
     {
-        $pageTitle = 'Membership Plans';
-        $emptyMessage = 'No Plan Created Yet.';
-        $plans = Plan::orderBy('id')->paginate(getPaginate());
-        $refs = Referral::get();
-        return view('admin.plans', compact('pageTitle', 'emptyMessage', 'plans', 'refs'));
+        $pageTitle = 'Subscription Plan';
+        $levels    = Referral::max('level');
+        $plans     = Plan::get();
+        return view('admin.plan',compact('pageTitle','levels','plans'));
     }
 
-
-    public function update(Request $request) {
-
+    public function savePlan(Request $request)
+    {
         $request->validate([
-            'name' => 'required',
-            'price' => 'required|numeric|min:0',
+            'name'        => 'required',
+            'tagline'     => 'required',
+            'price'       => 'required|numeric|min:0',
             'daily_limit' => 'required|numeric|min:1',
-            'ref_level' => 'required|numeric|min:0',
+            'ref_level'   => 'required|numeric|min:0',
+            'validity'    => 'required|min:0',
         ]);
 
         if($request->id == 0){
@@ -34,16 +34,22 @@ class PlanController extends Controller
         }else{
             $plan = Plan::findOrFail($request->id);
         }
-        $plan->name = $request->name;
-        $plan->price = $request->price;
+        $plan->name        = $request->name;
+        $plan->tagline     = $request->tagline;
+        $plan->price       = $request->price;
         $plan->daily_limit = $request->daily_limit;
-        $plan->ref_level = $request->ref_level;
-        $plan->status = isset($request->status) ? 1:0;
+        $plan->ref_level   = $request->ref_level;
+        $plan->validity    = $request->validity;
+        $plan->highlight   = isset($request->highlight) ? Status::YES : Status::NO;
         $plan->save();
-        
+
         $notify[] = ['success', 'Plan has been Updated Successfully.'];
         return back()->withNotify($notify);
     }
 
+    public function status(Request $request){
+
+        return Plan::changeStatus($request->id);
+    }
 
 }

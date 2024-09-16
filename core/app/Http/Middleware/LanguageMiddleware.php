@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Constants\Status;
 use App\Models\Language;
 use Closure;
 
@@ -26,9 +27,9 @@ class LanguageMiddleware
         if (session()->has('lang')) {
             return session('lang');
         }
-        $language = Language::where('is_default', 1)->first();
+        $language = Language::where('is_default', Status::ENABLE)->first();
         return $language ? $language->code : 'en';
     }
-    
-    
+
+
 }

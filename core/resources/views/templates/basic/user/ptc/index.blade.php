@@ -1,43 +1,48 @@
-
-@extends($activeTemplate .'layouts.user')
+@extends($activeTemplate . 'layouts.master')
 @section('content')
-@include($activeTemplate.'breadcrumb')
-<section class="cmn-section">
-	<div class="container">
-		<div class="row">
-			<div class="col-md-12">
-				<div class="card table-card">
-              		<div class="card-body p-o">
-						<div class="table-responsive--sm">
-							<table class="table table-striped">
-								<thead class="thead-dark">
-									<tr>
-										<th scope="col">@lang('Title')</th>
-										<th scope="col">@lang('Action')</th>
-									</tr>
-								</thead>
-								<tbody class="list">
-									@forelse($ads as $data)
-									@if(!in_array($data->id, $viewed))
-									<tr>
-										<td data-label="@lang('Title')">{{ __($data->title) }}</td>
-										<td data-label="@lang('Action')">
-											<a href="{{ route('user.ptc.show',Crypt::encryptString($data->id.'|'.auth()->user()->id)) }}" class="btn btn-primary" target="_blank">@lang('View Now')</a>
-										</td>
-									</tr>
-									@endif
-									@empty
-									<tr>
-										<td class="text-center" colspan="100%">{{ __($empty_message) }}</td>
-									</tr>
-									@endforelse
-								</tbody>
-							</table>
-						</div>
-              		</div>
-              	</div>
-			</div>
-		</div>
-	</div>
-</section>
+    <section class="cmn-section">
+        <div class="container">
+            <div class="row gy-4 justify-content-center">
+                @if (!blank($ads))
+                    @foreach ($ads as $ad)
+                        @if ($ad->schedule)
+                            @php
+                                $currentTime = now()->format('H:i');
+                            @endphp
+
+                            @if (!collect($ad->schedule)->where('day', strtolower(now()->format('l')))->where('start', '<', $currentTime)->where('end', '>', $currentTime)->first())
+                                @continue
+                            @endif
+                        @endif
+
+                        <div class="col-xl-4 col-md-6">
+                            <div class="card custom--card ptc-card ">
+                                <div class="card-body p-4">
+                                    <div class="row align-items-center">
+                                        <div class="col-8">
+                                            <h6>{{ __($ad->title) }}</h6>
+                                            <span class="fs--14px mt-2">@lang('Ads duration') : {{ $ad->duration }}s</span>
+                                        </div>
+                                        <div class="col-4 text-end">
+                                            <h5 class="text--base">{{ showAmount($ad->amount) }}</h5>
+                                            <a href="{{ route('user.ptc.show', encrypt($ad->id . '|' . auth()->user()->id)) }}"
+                                                target="_blank"
+                                                class="btn fs--12px px-sm-3 px-2 py-1 btn--base mt-2">@lang('View Ad')</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                @else
+                <div class="card">
+                        <div class="card-body p-0">
+                            @include($activeTemplate . 'partials.empty', ['message' => 'PTC ad not found'])
+                        </div>
+                    </div>
+                @endif
+            </div>
+
+        </div>
+    </section>
 @endsection

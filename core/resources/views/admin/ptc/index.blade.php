@@ -1,77 +1,81 @@
 @extends('admin.layouts.app')
 @section('panel')
 <div class="row">
-
-    <div class="col-lg-12">
-        <div class="card">
+  <div class="col-md-12">
+    <div class="card">
+        <div class="card-body p-0">
             <div class="table-responsive--sm">
                 <table class="table table--light style--two">
                     <thead>
                         <tr>
-                            <th scope="col">@lang('Title')</th>
-                            <th scope="col">@lang('Type')</th>
-                            <th scope="col">@lang('Duration')</th>
-                            <th scope="col">@lang('Maximum View')</th>
-                            <th scope="col">@lang('Viewed')</th>
-                            <th scope="col">@lang('Remain')</th>
-                            <th scope="col">@lang('Amount')</th>
-                            <th scope="col">@lang('Status')</th>
-                            <th scope="col">@lang('Action')</th>
+                            <th >@lang('Title')</th>
+                            <th >@lang('Posted By')</th>
+                            <th >@lang('Type')</th>
+                            <th >@lang('Duration')</th>
+                            <th >@lang('Maximum View')</th>
+                            <th >@lang('Viewed')</th>
+                            <th >@lang('Remain')</th>
+                            <th >@lang('Amount')</th>
+                            <th >@lang('Status')</th>
+                            <th >@lang('Action')</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($ptcs as $ptc)
-                        <tr>
-                            <td data-label="@lang('Title')">{{shortDescription($ptc->title,20)}}</td>
-                            <td data-label="@lang('Type')">
-                                    @if($ptc->ads_type == 1)
-                                        <span class="font-weight-normal text--small badge badge--success"><i class="fa fa-link"></i> @lang('URL')</span>
-                                    @elseif($ptc->ads_type == 2)
-                                        <span class="font-weight-normal text--small badge badge--dark"><i class="fa fa-image"></i> @lang('Image')</span>
-                                    @elseif($ptc->ads_type == 3)
-                                        <span class="font-weight-normal text--small badge badge--primary"><i class="fa fa-code"></i> @lang('Script')</span>
+                        @forelse($ads as $ptc)
+                            <tr>
+                                <td>{{strLimit($ptc->title,20)}}</td>
+                                <td>
+                                    @if($ptc->user)
+                                        <span class="fw-bold">{{ $ptc->user->fullname }}</span>
+                                        <br>
+                                        <span class="small">
+                                            <a href="{{ route('admin.users.detail',$ptc->user_id) }}"><span>@</span>{{ $ptc->user->username }}</a>
+                                        </span>
                                     @else
-                                        <span class="font-weight-normal text--small badge badge--primary"><i class="fa fa-code"></i> @lang('Youtube Link')</span>
+                                        <span class="fw-bold">@lang('Admin')</span>
                                     @endif
-                            </td>
-                            <td data-label="@lang('Duration')">{{$ptc->duration}} @lang('Sec')</td>
-                            <td data-label="@lang('Maximum View')">{{$ptc->max_show}}</td>
-                            <td data-label="@lang('Viewed')">{{$ptc->showed}}</td>
-                            <td data-label="@lang('Remain')">{{$ptc->remain}}</td>
+                                </td>
+                                <td>
+                                    @php echo $ptc->typeBadge @endphp
+                                </td>
+                                <td>{{$ptc->duration}} @lang('Sec')</td>
+                                <td>{{$ptc->max_show}}</td>
+                                <td>{{$ptc->showed}}</td>
+                                <td>{{$ptc->remain}}</td>
 
+                                <td class="fw-bold">{{ showAmount($ptc->amount) }} </td>
 
-                            <td data-label="@lang('Amount')" class="font-weight-bold">{{ $ptc->amount+0 }} {{$general->cur_text}}</td>     
+                                <td>
+                                    @php echo $ptc->statusBadge @endphp
+                                </td>
+                                <td>
+                                    <div class="button--group">
 
-                            <td data-label="@lang('Status')">
-                                @if($ptc->status == 1)
-                                    <span class="font-weight-normal text--small badge badge--success">@lang('active')</span>
-                                @else
-                                    <span class="font-weight-normal text--small badge badge--warning">@lang('inactive')</span>
-                                @endif
-                            </td>
-                            <td data-label="@lang('Action')"><a class="icon-btn" href="{{route('admin.ptc.edit',$ptc->id)}}"><i class="la la-pen"></i></a></td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td class="text-muted text-center" colspan="100%">{{ $emptyMessage }}</td>
-                        </tr>
+                                    <a href="{{ route('admin.ptc.engagement', $ptc->id) }}" class="btn btn-sm btn-outline--info">
+                                        <i class="la la-eye"></i>@lang('Engagement')
+                                    </a>
+                                    <a class="btn btn-outline--primary btn-sm ms-1" href="{{route('admin.ptc.edit',$ptc->id)}}"><i class="la la-pen"></i> @lang('Edit')</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td class="text-muted text-center" colspan="100%">{{ __($emptyMessage) }}</td>
+                            </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-            <div class="card-footer py-4">
-                <nav aria-label="...">
-                    {{ $ptcs->links('admin.partials.paginate') }}
-                </nav>
-            </div>
         </div>
+        @if($ads->hasPages())
+        <div class="card-footer py-4">
+            {{ paginateLinks($ads) }}
+        </div>
+        @endif
     </div>
+  </div>
 </div>
-
-
 @endsection
-
 @push('breadcrumb-plugins')
-        <a class="icon-btn" href="{{route('admin.ptc.create')}}"><i class="fa fa-fw fa-plus"></i>@lang('Add New')</a>
+    <a href="{{ route('admin.ptc.create') }}" class="btn btn-outline--primary btn-sm"><i class="las la-plus"></i> @lang('Add New')</a>
 @endpush
-

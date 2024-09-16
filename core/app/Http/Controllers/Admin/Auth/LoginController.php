@@ -1,11 +1,10 @@
 <?php
 namespace App\Http\Controllers\Admin\Auth;
 
-use App\Models\GeneralSetting;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Laramin\Utility\Onumoti;
 
 class LoginController extends Controller
 {
@@ -30,16 +29,6 @@ class LoginController extends Controller
     public $redirectTo = 'admin';
 
     /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        $this->middleware('admin.guest')->except('logout');
-    }
-
-    /**
      * Show the application's login form.
      *
      * @return \Illuminate\Http\Response
@@ -57,7 +46,7 @@ class LoginController extends Controller
      */
     protected function guard()
     {
-        return Auth::guard('admin');
+        return auth()->guard('admin');
     }
 
     public function username()
@@ -69,16 +58,16 @@ class LoginController extends Controller
     {
 
         $this->validateLogin($request);
-        $lv = @getLatestVersion();
-        $general = GeneralSetting::first();
-        if (@systemDetails()['version'] < @json_decode($lv)->version) {
-            $general->sys_version = $lv;
-        } else {
-            $general->sys_version = null;
-        }
-        $general->save();
 
-//
+        $request->session()->regenerateToken();
+
+        if(!verifyCaptcha()){
+            $notify[] = ['error','Invalid captcha provided'];
+            return back()->withNotify($notify);
+        }
+
+
+        Onumoti::getData();
 
         // If the class is using the ThrottlesLogins trait, we can automatically throttle
         // the login attempts for this application. We'll key this by the username and
@@ -106,12 +95,6 @@ class LoginController extends Controller
     {
         $this->guard('admin')->logout();
         $request->session()->invalidate();
-        return $this->loggedOut($request) ?: redirect('/admin');
-    }
-
-    public function resetPassword()
-    {
-        $pageTitle = 'Account Recovery';
-        return view('admin.reset', compact('pageTitle'));
+        return $this->loggedOut($request) ?: redirect($this->redirectTo);
     }
 }

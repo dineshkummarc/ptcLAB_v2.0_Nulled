@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Page extends Model
 {
-    protected $guarded = ['id'];
-    protected $table ="pages";
+    protected $casts = [
+        'seo_content'=>'object'
+    ];
 }

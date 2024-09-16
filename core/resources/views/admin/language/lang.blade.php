@@ -2,17 +2,17 @@
 @section('panel')
     <div class="row">
         <div class="col-md-12 mb-30">
-            <div class="card bl--5-primary">
+            <div class="card bl--5 border--primary">
                 <div class="card-body">
-                    <p class="font-weight-bold text--info">@lang('While you are adding a new keyword, it will only add to this current language only. Please be careful on entering a keyword, please make sure there is no extra space. It needs to be exact and case-sensitive.')</p>
+                    <p class="text--primary">@lang('While you are adding a new keyword, it will only add to this current language only. Please be careful on entering a keyword, please make sure there is no extra space. It needs to be exact and case-sensitive.')</p>
                 </div>
             </div>
         </div>
         <div class="col-lg-12">
-            <div class="card b-radius--10 ">
+            <div class="card  ">
                 <div class="card-body p-0">
                     <div class="table-responsive--sm table-responsive">
-                        <table class="table table--light tabstyle--two custom-data-table">
+                        <table class="table table--light style--two custom-data-table">
                             <thead>
                             <tr>
                                 <th>@lang('Name')</th>
@@ -24,29 +24,37 @@
                             <tbody>
                             @forelse ($languages as $item)
                                 <tr>
-                                    <td data-label="@lang('Name')">{{__($item->name)}}
+                                    <td>
+                                        <div class="user">
+                                            <div class="thumb">
+                                                <img src="{{ getImage(getFilePath('language') . '/' . @$item->image, getFileSize('language')) }}"
+                                                    alt="{{ $item->name }}" class="plugin_bg">
+                                                <span class="name">{{ __($item->name) }}</span>
+                                            </div>
+                                        </div>
                                     </td>
-                                    <td data-label="@lang('Code')"><strong>{{ __($item->code) }}</strong></td>
-                                    <td data-label="@lang('Default')">
-                                        @if($item->is_default == 1)
-                                            <span class="text--small badge font-weight-normal badge--success">@lang('Default')</span>
+                                    <td><strong>{{ __($item->code) }}</strong></td>
+                                    <td>
+                                        @if($item->is_default == Status::YES)
+                                            <span class="badge badge--success">@lang('Default')</span>
                                         @else
-                                            <span class="text--small badge font-weight-normal badge--warning">@lang('Selectable')</span>
+                                            <span class="badge badge--warning">@lang('Selectable')</span>
                                         @endif
                                     </td>
-                                    <td data-label="@lang('Action')">
-                                        <a href="{{route('admin.language.key', $item->id)}}" class="icon-btn btn--success" data-toggle="tooltip" data-original-title="@lang('Translate')">
-                                            <i class="la la-code"></i>
-                                        </a>
-                                        <a href="javascript:void(0)" class="icon-btn ml-1 editBtn" data-original-title="@lang('Edit')" data-toggle="tooltip" data-url="{{ route('admin.language.manage.update', $item->id)}}" data-lang="{{ json_encode($item->only('name', 'text_align', 'is_default')) }}">
-                                            <i class="la la-edit"></i>
-                                        </a>
-                                        @if($item->id != 1)
-                                            <a href="javascript:void(0)" class="icon-btn btn--danger ml-1 deleteBtn" data-original-title="@lang('Delete')" data-toggle="tooltip" data-url="{{ route('admin.language.manage.del', $item->id) }}">
-                                                <i class="la la-trash"></i>
+                                    <td>
+                                        <div class="button--group">
+                                            <a href="{{route('admin.language.key', $item->id)}}" class="btn btn-sm btn-outline--success">
+                                                <i class="la la-language"></i> @lang('Translate')
                                             </a>
-                                        @endif
-
+                                            <a href="javascript:void(0)" class="btn btn-sm btn-outline--primary ms-1 editBtn" data-url="{{ route('admin.language.manage.update', $item->id)}}" data-lang="{{ json_encode($item->only('name', 'text_align', 'is_default','image')) }}" data-image="{{ getImage(getFilePath('language').'/'.$item->image,getFileSize('language')) }}">
+                                                <i class="la la-pen"></i> @lang('Edit')
+                                            </a>
+                                            @if($item->id != 1)
+                                                <button class="btn btn-sm btn-outline--danger confirmationBtn" data-question="@lang('Are you sure to remove this language from this system?')" data-action="{{ route('admin.language.manage.delete', $item->id) }}">
+                                                    <i class="la la-trash"></i> @lang('Remove')
+                                                </button>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
@@ -70,37 +78,43 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h4 class="modal-title" id="createModalLabel"> @lang('Add New Language')</h4>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><i class="las la-times"></i></button>
                 </div>
-                <form class="form-horizontal" method="post" action="{{ route('admin.language.manage.store')}}">
+                <form class="form-horizontal" method="post" action="{{ route('admin.language.manage.store')}}" enctype="multipart/form-data">
                     @csrf
                     <div class="modal-body">
-                        <div class="form-row form-group">
-                            <label class="font-weight-bold ">@lang('Language Name') <span class="text-danger">*</span></label>
+                        <div class="row">
+                            <div class="form-group col-12">
+                                <label> @lang('Flag')</label>
+                                <x-image-uploader :imagePath="getImage(null, getFileSize('language'))" :size="getFileSize('language')" class="w-100" id="imageCreate"
+                                    :required="true" />
+                            </div>
+                        </div>
+                        <div class="row form-group">
+                            <label>@lang('Language Name')</label>
                             <div class="col-sm-12">
-                                <input type="text" class="form-control" id="code" name="name" placeholder="@lang('e.g. Japaneese, Portuguese')" required>
+                                <input type="text" class="form-control" value="{{ old('name') }}" name="name" required>
                             </div>
                         </div>
 
-                        <div class="form-row form-group">
-                            <label class="font-weight-bold">@lang('Language Code') <span class="text-danger">*</span></label>
+                        <div class="row form-group">
+                            <label>@lang('Language Code')</label>
                             <div class="col-sm-12">
-                                <input type="text" class="form-control" id="link" name="code" placeholder="@lang('e.g. jp, pt-br')" required>
+                                <input type="text" class="form-control" value="{{ old('code') }}" name="code" required>
                             </div>
                         </div>
 
-                        <div class="form-row form-group">
+                        <div class="row form-group">
                             <div class="col-md-12">
-                                <label for="inputName" class="">@lang('Default Language') <span class="text-danger">*</span></label>
-                                <input type="checkbox" data-width="100%" data-height="40px" data-onstyle="-success" data-offstyle="-danger" data-toggle="toggle" data-on="@lang('SET')" data-off="@lang('UNSET')" name="is_default">
+                                <label for="inputName">@lang('Default Language')</label>
+                                <input type="checkbox" data-width="100%" data-height="40px" data-onstyle="-success" data-offstyle="-danger" data-bs-toggle="toggle" data-on="@lang('SET')" data-off="@lang('UNSET')" name="is_default">
                             </div>
 
                         </div>
 
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn--dark" data-dismiss="modal">@lang('Close')</button>
-                        <button type="submit" class="btn btn--primary" id="btn-save" value="add">@lang('Save')</button>
+                        <button type="submit" class="btn btn--primary w-100 h-45" id="btn-save" value="add">@lang('Submit')</button>
                     </div>
                 </form>
             </div>
@@ -113,58 +127,73 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h4 class="modal-title" id="editModalLabel">@lang('Edit Language')</h4>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><i class="las la-times"></i></button>
                 </div>
-                <form method="post">
+                <form method="post" class="disableSubmission" enctype="multipart/form-data">
                     @csrf
                     <div class="modal-body">
-                        <div class="form-row">
-                            <label for="inputName" class="font-weight-bold">@lang('Language Name') <span class="text-danger">*</span></label>
+                        <div class="form-group">
+                            <label> @lang('Flag')</label>
+                            <x-image-uploader :imagePath="getImage(null, getFileSize('language'))" :size="getFileSize('language')" class="w-100" id="imageEdit"
+                                :required="false" />
+                        </div>
+                        <div class="form-group">
+                            <label>@lang('Language Name')</label>
                             <div class="col-sm-12">
-                                <input type="text" class="form-control" id="code" name="name" required>
+                                <input type="text" class="form-control" value="{{ old('name') }}" name="name" required>
                             </div>
                         </div>
 
                         <div class="form-group mt-2">
-                            <label for="inputName" class="font-weight-bold">@lang('Default Language') <span class="text-danger">*</span></label>
-                            <input type="checkbox" data-width="100%" data-height="40px" data-onstyle="-success" data-offstyle="-danger" data-toggle="toggle" data-on="@lang('SET')" data-off="@lang('UNSET')" name="is_default">
+                            <label for="inputName">@lang('Default Language')</label>
+                            <input type="checkbox" data-width="100%" data-height="40px" data-onstyle="-success" data-offstyle="-danger" data-bs-toggle="toggle" data-on="@lang('SET')" data-off="@lang('UNSET')" name="is_default">
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn--dark" data-dismiss="modal">@lang('Close')</button>
-                        <button type="submit" class="btn btn--primary" id="btn-save" value="add">@lang('Update')</button>
+                        <button type="submit" class="btn btn--primary w-100 h-45" id="btn-save" value="add">@lang('Submit')</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-    {{-- DELETE MODAL --}}
-    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+
+
+    <div class="modal fade" id="getLangModal" tabindex="-1" role="dialog" aria-labelledby="getLangModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h4 class="modal-title" id="deleteModalLabel">@lang('Remove Language')</h4>
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title" id="getLangModalLabel">@lang('Language Keywords')</h4>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><i class="las la-times"></i></button>
                 </div>
-                <form method="post" action="">
-                    @csrf
-                    <input type="hidden" name="delete_id" id="delete_id" class="delete_id" value="0">
-                    <div class="modal-body">
-                        <p class="text-muted">@lang('Are you sure to delete?')</p>
+                <div class="modal-body">
+                    <p class="mb-3">@lang('All of the possible language keywords are available here. However, some keywords may be missing due to variations in the database. If you encounter any missing keywords, you can add them manually.')</p>
+                    <p class="text--primary mb-3">@lang('You can import these keywords from the translate page of any language as well.')</p>
+                    <div class="form-group">
+                        <textarea name="" class="form-control langKeys key-added" id="langKeys" rows="25" readonly></textarea>
+                        <button type="button" class="btn btn--primary w-100 h-45 mt-3 copyBtn"><i class="las la-copy"></i> <span class="text-white copy-text">@lang('Copy')</span></button>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn--dark" data-dismiss="modal">@lang('Close')</button>
-                        <button type="submit" class="btn btn--danger deleteButton">@lang('Delete')</button>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>
-@endsection
+
+    <x-confirmation-modal />
+
+
+    @endsection
 
 
 @push('breadcrumb-plugins')
-    <a class="btn btn-sm btn--primary box--shadow1 text-white text--small" data-toggle="modal" data-target="#createModal"><i class="fa fa-fw fa-plus"></i>@lang('Add New Language')</a>
+    <button type="button" class="btn btn-sm btn-outline--primary" data-bs-toggle="modal" data-bs-target="#createModal"><i class="las la-plus"></i>@lang('Add New')</button>
+    <button type="button" class="btn btn-sm btn-outline--info keyBtn" data-bs-toggle="modal" data-bs-target="#getLangModal"><i class="las la-code"></i>@lang('Language Keywords')</button>
+@endpush
+
+@push('style')
+    <style>
+        .key-added{
+            pointer-events: unset !important;
+        }
+    </style>
 @endpush
 
 @push('script')
@@ -179,6 +208,7 @@
                 modal.find('form').attr('action', url);
                 modal.find('input[name=name]').val(lang.name);
                 modal.find('select[name=text_align]').val(lang.text_align);
+                modal.find('.image-upload-preview').css('background-image',`url(${$(this).data('image')})`);
                 if (lang.is_default == 1) {
                     modal.find('input[name=is_default]').bootstrapToggle('on');
                 } else {
@@ -187,13 +217,24 @@
                 modal.modal('show');
             });
 
-            $('.deleteBtn').on('click', function () {
-                var modal = $('#deleteModal');
-                var url = $(this).data('url');
-
-                modal.find('form').attr('action', url);
-                modal.modal('show');
+            $('.keyBtn').on('click',function (e) {
+                e.preventDefault();
+                $.get("{{ route('admin.language.get.key') }}", {},function (data) {
+                    $('.langKeys').text(data);
+                });
             });
+
+            $('.copyBtn').on('click',function () {
+                var copyText = document.getElementById("langKeys");
+                copyText.select();
+                document.execCommand("copy");
+                $('.copy-text').text('Copied');
+                setTimeout(() => {
+                    $('.copy-text').text('Copy');
+                }, 2000);
+
+            });
+
         })(jQuery);
     </script>
 @endpush

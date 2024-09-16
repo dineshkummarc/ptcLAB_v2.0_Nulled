@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers\Gateway\StripeV3;
 
+use App\Constants\Status;
 use App\Models\Deposit;
 use App\Models\GatewayCurrency;
-use App\Models\GeneralSetting;
 use App\Http\Controllers\Gateway\PaymentController;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use Auth;
-use Session;
 
 
 class ProcessController extends Controller
@@ -19,22 +17,31 @@ class ProcessController extends Controller
     {
         $StripeAcc = json_decode($deposit->gatewayCurrency()->gateway_parameter);
         $alias = $deposit->gateway->alias;
-        $general =  GeneralSetting::first();
         \Stripe\Stripe::setApiKey("$StripeAcc->secret_key");
-
-        $session = \Stripe\Checkout\Session::create([
-            'payment_method_types' => ['card'],
-            'line_items' => [[
-                'name' => $general->sitename,
-                'description' => 'Deposit  with Stripe',
-                'images' => [asset('assets/images/logoIcon/logo.png')],
-                'amount' => round($deposit->final_amo,2) * 100,
-                'currency' => "$deposit->method_currency",
-                'quantity' => 1,
-            ]],
-            'cancel_url' => route(gatewayRedirectUrl()),
-            'success_url' => route(gatewayRedirectUrl(true)),
-        ]);
+        try {
+            $session = \Stripe\Checkout\Session::create([
+                'payment_method_types' => ['card'],
+                'line_items' => [[
+                    'price_data'=>[
+                        'unit_amount' => round($deposit->final_amount,2) * 100,
+                        'currency' => "$deposit->method_currency",
+                        'product_data'=>[
+                            'name' => gs('site_name'),
+                            'description' => 'Deposit with Stripe',
+                            'images' => [siteLogo()],
+                        ]
+                    ],
+                    'quantity' => 1,
+                ]],
+                'mode' => 'payment',
+                'cancel_url' => route('home').$deposit->failed_url,
+                'success_url' => route('home').$deposit->success_url,
+            ]);
+        } catch (\Exception $e) {
+            $send['error'] = true;
+            $send['message'] = $e->getMessage();
+            return json_encode($send);
+        }
 
         $send['view'] = 'user.payment.'.$alias;
         $send['session'] = $session;
@@ -79,8 +86,8 @@ class ProcessController extends Controller
             $session = $event->data->object;
             $deposit = Deposit::where('btc_wallet',  $session->id)->orderBy('id', 'DESC')->first();
 
-            if($deposit->status==0){
-                PaymentController::userDataUpdate($deposit->trx);
+            if($deposit->status==Status::PAYMENT_INITIATE){
+                PaymentController::userDataUpdate($deposit);
             }
         }
         http_response_code(200);

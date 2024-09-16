@@ -1,55 +1,123 @@
-
-@extends($activeTemplate .'layouts.user')
+@extends($activeTemplate . 'layouts.master')
 @section('content')
-@include($activeTemplate.'breadcrumb')
-<section class="cmn-section">
-    <div class="container">
-        <div class="row mb-60-80">
-            <div class="col-md-12 mb-30">
-                <div class="card table-card">
-                    <div class="card-body p-0">
-                        
-                        <div class="table-responsive--sm">
-                            <table class="table table-striped">
-                                <thead class="thead-dark">
-                                <tr>
-                                    <th scope="col">@lang('Transaction ID')</th>
-                                    <th scope="col">@lang('Amount')</th>
-                                    <th scope="col">@lang('Remaining Balance')</th>
-                                    <th scope="col">@lang('Details')</th>
-                                    <th scope="col">@lang('Date')</th>
-
-                                </tr>
-                                </thead>
-                                <tbody>
-                                @if(count($logs) >0)
-                                    @foreach($logs as $k=>$data)
-                                        <tr>
-                                            <td data-label="@lang('Transaction Id')">{{$data->trx}}</td>
-                                            <td data-label="@lang('Amount')">
-                                                <strong @if($data->trx_type == '+') class="text-success" @else class="text-danger" @endif> {{($data->trx_type == '+') ? '+':'-'}} {{showAmount($data->amount)}} {{$general->cur_text}}</strong>
-                                            </td>
-                                            <td data-label="@lang('Remaining Balance')">
-                                                <strong class="text-info">{{showAmount($data->post_balance)}} {{__($general->cur_text)}}</strong>
-                                            </td>
-                                            <td data-label="@lang('Details')">{{__($data->details)}}</td>
-                                            <td data-label="@lang('Date')">{{date('d M, Y', strtotime($data->created_at))}}</td>
-                                        </tr>
-                                    @endforeach
-                                @else
-                                    <tr>
-                                        <td colspan="100%" class="text-center"> @lang('No results found')!</td>
-                                    </tr>
-                                @endif
-                                </tbody>
-                            </table>
+    <div class="cmn-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-12">
+                    <div class="show-filter mb-3 text-end">
+                        <button type="button" class="btn btn--base showFilterBtn btn-sm"><i class="las la-filter"></i>
+                            @lang('Filter')</button>
+                    </div>
+                    <div class="card responsive-filter-card mb-4">
+                        <div class="card-body">
+                            <form>
+                                <div class="d-flex flex-wrap gap-4">
+                                    <div class="flex-grow-1">
+                                        <label class="form-label form--label">@lang('Transaction Number')</label>
+                                        <input type="text" name="search" value="{{ request()->search }}" class="form-control form--control">
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <label class="form-label form--label">@lang('Type')</label>
+                                        <select name="trx_type" class="select2-basic form-control" data-minimum-results-for-search="-1">
+                                            <option value="">@lang('All')</option>
+                                            <option value="+" @selected(request()->trx_type == '+')>@lang('Plus')
+                                            </option>
+                                            <option value="-" @selected(request()->trx_type == '-')>@lang('Minus')
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <label class="form-label form--label">@lang('Remark')</label>
+                                        <select name="remark" class="select2-basic form-control" data-minimum-results-for-search="-1">
+                                            <option value="">@lang('Any')</option>
+                                            @foreach ($remarks as $remark)
+                                                <option value="{{ $remark->remark }}" @selected(request()->remark == $remark->remark)>
+                                                    {{ __(keyToTitle($remark->remark)) }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="flex-grow-1 align-self-end">
+                                        <button class="btn btn--base w-100"><i class="las la-filter"></i>
+                                            @lang('Filter')</button>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
                     </div>
-                </div>
 
-                {{$logs->links($activeTemplate.'paginate')}}
+                    @if (!blank($transactions))
+                        <div class="card custom--card">
+                            <div class="card-body p-0">
+                                <div class="table-responsive--sm">
+                                    <table class="table">
+                                        <thead class="thead-dark">
+                                            <tr>
+                                                <th>@lang('Trx')</th>
+                                                <th>@lang('Transacted')</th>
+                                                <th>@lang('Amount')</th>
+                                                <th>@lang('Post Balance')</th>
+                                                <th>@lang('Detail')</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($transactions as $trx)
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ $trx->trx }}</strong>
+                                                    </td>
+
+                                                    <td>
+                                                        {{ showDateTime($trx->created_at) }}<br>{{ diffForHumans($trx->created_at) }}
+                                                    </td>
+
+                                                    <td class="budget">
+                                                        <span class="fw-bold @if ($trx->trx_type == '+') text--success @else text--danger @endif">
+                                                            {{ $trx->trx_type }} {{ showAmount($trx->amount) }}
+
+                                                        </span>
+                                                    </td>
+
+                                                    <td class="budget">
+                                                        {{ showAmount($trx->post_balance) }}
+                                                    </td>
+
+                                                    <td>{{ __($trx->details) }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                            </div>
+                        </div>
+                    @else
+                        <div class="card">
+                            <div class="card-body p-0">
+                                @include($activeTemplate . 'partials.empty', ['message' => 'Transaction not found'])
+                            </div>
+                        </div>
+                    @endif
+                    <div class="mt-4">
+                        {{ paginateLinks($transactions) }}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    </section>
 @endsection
+
+@push('style-lib')
+    <link rel="stylesheet" href="{{ asset('assets/global/css/select2.min.css') }}">
+@endpush
+
+@push('script-lib')
+    <script src="{{ asset('assets/global/js/select2.min.js') }}"></script>
+@endpush
+
+@push('style')
+    <style>
+        span.selection {
+            width: 100%;
+        }
+    </style>
+@endpush

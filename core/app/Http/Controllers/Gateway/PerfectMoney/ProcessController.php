@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Gateway\PerfectMoney;
 
+use App\Constants\Status;
 use App\Models\Deposit;
-use App\Models\GeneralSetting;
 use App\Http\Controllers\Gateway\PaymentController;
 use App\Http\Controllers\Controller;
-use Auth;
 
 class ProcessController extends Controller
 {
@@ -16,25 +15,22 @@ class ProcessController extends Controller
      */
     public static function process($deposit)
     {
-        $basic =  GeneralSetting::first();
-
         $gateway_currency = $deposit->gatewayCurrency();
 
         $perfectAcc = json_decode($gateway_currency->gateway_parameter);
 
-        $gateway_alias = $gateway_currency->gateway_alias;
         $val['PAYEE_ACCOUNT'] = trim($perfectAcc->wallet_id);
-        $val['PAYEE_NAME'] = $basic->sitename;
+        $val['PAYEE_NAME'] = gs('site_name');
         $val['PAYMENT_ID'] = "$deposit->trx";
-        $val['PAYMENT_AMOUNT'] = round($deposit->final_amo,2);
+        $val['PAYMENT_AMOUNT'] = round($deposit->final_amount,2);
         $val['PAYMENT_UNITS'] = "$deposit->method_currency";
 
         $val['STATUS_URL'] = route('ipn.'.$deposit->gateway->alias);
-        $val['PAYMENT_URL'] = route(gatewayRedirectUrl(true));
+        $val['PAYMENT_URL'] = route('home').$deposit->success_url;
         $val['PAYMENT_URL_METHOD'] = 'POST';
-        $val['NOPAYMENT_URL'] = route(gatewayRedirectUrl());
+        $val['NOPAYMENT_URL'] = route('home').$deposit->failed_url;
         $val['NOPAYMENT_URL_METHOD'] = 'POST';
-        $val['SUGGESTED_MEMO'] = Auth::user()->username;
+        $val['SUGGESTED_MEMO'] = auth()->user()->username;
         $val['BAGGAGE_FIELDS'] = 'IDENT';
 
 
@@ -64,19 +60,18 @@ class ProcessController extends Controller
         $hash2 = $_POST['V2_HASH'];
 
         if ($hash == $hash2) {
-            
+
             foreach ($_POST as $key => $value) {
                 $details[$key] = $value;
             }
             $deposit->detail = $details;
             $deposit->save();
 
-            $amo = $_POST['PAYMENT_AMOUNT'];
+            $amount = $_POST['PAYMENT_AMOUNT'];
             $unit = $_POST['PAYMENT_UNITS'];
-            $track = $_POST['PAYMENT_ID'];
-            if ($_POST['PAYEE_ACCOUNT'] == $pmAcc->wallet_id && $unit == $deposit->method_currency && $amo == round($deposit->final_amo,2) && $deposit->status == '0') {
+            if ($_POST['PAYEE_ACCOUNT'] == $pmAcc->wallet_id && $unit == $deposit->method_currency && $amount == round($deposit->final_amount,2) && $deposit->status == Status::PAYMENT_INITIATE) {
                 //Update User Data
-                PaymentController::userDataUpdate($deposit->trx);
+                PaymentController::userDataUpdate($deposit);
             }
         }
     }

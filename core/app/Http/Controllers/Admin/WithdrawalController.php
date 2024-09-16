@@ -2,235 +2,160 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\GeneralSetting;
+use App\Constants\Status;
 use App\Http\Controllers\Controller;
 use App\Models\Transaction;
-use App\Models\User;
-use App\Models\WithdrawMethod;
 use App\Models\Withdrawal;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class WithdrawalController extends Controller
 {
-    public function pending()
+    public function pending($userId = null)
     {
         $pageTitle = 'Pending Withdrawals';
-        $withdrawals = Withdrawal::pending()->with(['user','method'])->orderBy('id','desc')->paginate(getPaginate());
-        $emptyMessage = 'No withdrawal found';
-        return view('admin.withdraw.withdrawals', compact('pageTitle', 'withdrawals', 'emptyMessage'));
+        $withdrawals = $this->withdrawalData('pending',userId:$userId);
+        return view('admin.withdraw.withdrawals', compact('pageTitle', 'withdrawals'));
     }
-    
-    public function approved()
+
+    public function approved($userId = null)
     {
         $pageTitle = 'Approved Withdrawals';
-        $withdrawals = Withdrawal::approved()->with(['user','method'])->orderBy('id','desc')->paginate(getPaginate());
-        $emptyMessage = 'No withdrawal found';
-        return view('admin.withdraw.withdrawals', compact('pageTitle', 'withdrawals', 'emptyMessage'));
+        $withdrawals = $this->withdrawalData('approved',userId:$userId);
+        return view('admin.withdraw.withdrawals', compact('pageTitle', 'withdrawals'));
     }
 
-    public function rejected()
+    public function rejected($userId = null)
     {
         $pageTitle = 'Rejected Withdrawals';
-        $withdrawals = Withdrawal::rejected()->with(['user','method'])->orderBy('id','desc')->paginate(getPaginate());
-        $emptyMessage = 'No withdrawal found';
-        return view('admin.withdraw.withdrawals', compact('pageTitle', 'withdrawals', 'emptyMessage'));
+        $withdrawals = $this->withdrawalData('rejected',userId:$userId);
+        return view('admin.withdraw.withdrawals', compact('pageTitle', 'withdrawals'));
     }
 
-    public function log()
+    public function all($userId = null)
     {
-        $pageTitle = 'Withdrawals Log';
-        $withdrawals = Withdrawal::where('status', '!=', 0)->with(['user','method'])->orderBy('id','desc')->paginate(getPaginate());
-        $emptyMessage = 'No withdrawal history';
-        return view('admin.withdraw.withdrawals', compact('pageTitle', 'withdrawals', 'emptyMessage'));
+        $pageTitle = 'All Withdrawals';
+        $withdrawalData = $this->withdrawalData($scope = null, $summary = true,userId:$userId);
+        $withdrawals = $withdrawalData['data'];
+        $summary = $withdrawalData['summary'];
+        $successful = $summary['successful'];
+        $pending = $summary['pending'];
+        $rejected = $summary['rejected'];
+
+
+        return view('admin.withdraw.withdrawals', compact('pageTitle', 'withdrawals','successful','pending','rejected'));
     }
 
-
-    public function logViaMethod($methodId,$type = null){
-        $method = WithdrawMethod::findOrFail($methodId);
-        if ($type == 'approved') {
-            $pageTitle = 'Approved Withdrawal Via '.$method->name;
-            $withdrawals = Withdrawal::where('status', 1)->with(['user','method'])->where('method_id',$method->id)->orderBy('id','desc')->paginate(getPaginate());
-        }elseif($type == 'rejected'){
-            $pageTitle = 'Rejected Withdrawals Via '.$method->name;
-            $withdrawals = Withdrawal::where('status', 3)->with(['user','method'])->where('method_id',$method->id)->orderBy('id','desc')->paginate(getPaginate());
-
-        }elseif($type == 'pending'){
-            $pageTitle = 'Pending Withdrawals Via '.$method->name;
-            $withdrawals = Withdrawal::where('status', 2)->with(['user','method'])->where('method_id',$method->id)->orderBy('id','desc')->paginate(getPaginate());
+    protected function withdrawalData($scope = null, $summary = false,$userId = null){
+        if ($scope) {
+            $withdrawals = Withdrawal::$scope();
         }else{
-            $pageTitle = 'Withdrawals Via '.$method->name;
-            $withdrawals = Withdrawal::where('status', '!=', 0)->with(['user','method'])->where('method_id',$method->id)->orderBy('id','desc')->paginate(getPaginate());
-        }
-        $emptyMessage = 'No withdrawal found';
-        return view('admin.withdraw.withdrawals', compact('pageTitle', 'withdrawals', 'emptyMessage','method'));
-    }
-
-
-    public function search(Request $request, $scope)
-    {
-        $search = $request->search;
-        $emptyMessage = 'No search result found.';
-
-        $withdrawals = Withdrawal::with(['user', 'method'])->where('status','!=',0)->where(function ($q) use ($search) {
-            $q->where('trx', 'like',"%$search%")
-                ->orWhereHas('user', function ($user) use ($search) {
-                    $user->where('username', 'like',"%$search%");
-                });
-        });
-
-        if ($scope == 'pending') {
-            $pageTitle = 'Pending Withdrawal Search';
-            $withdrawals = $withdrawals->where('status', 2);
-        }elseif($scope == 'approved'){
-            $pageTitle = 'Approved Withdrawal Search';
-            $withdrawals = $withdrawals->where('status', 1);
-        }elseif($scope == 'rejected'){
-            $pageTitle = 'Rejected Withdrawal Search';
-            $withdrawals = $withdrawals->where('status', 3);
-        }else{
-            $pageTitle = 'Withdrawal History Search';
+            $withdrawals = Withdrawal::where('status','!=',Status::PAYMENT_INITIATE);
         }
 
-        $withdrawals = $withdrawals->paginate(getPaginate());
-        $pageTitle .= ' - ' . $search;
-
-        return view('admin.withdraw.withdrawals', compact('pageTitle', 'emptyMessage', 'search', 'scope', 'withdrawals'));
-    }
-
-    public function dateSearch(Request $request,$scope){
-        $search = $request->date;
-        if (!$search) {
-            return back();
-        }
-        $date = explode('-',$search);
-        $start = @$date[0];
-        $end = @$date[1];
-
-        // date validation
-        $pattern = "/\d{2}\/\d{2}\/\d{4}/";
-        if ($start && !preg_match($pattern,$start)) {
-            $notify[] = ['error','Invalid date format'];
-            return redirect()->route('admin.withdraw.log')->withNotify($notify);
-        }
-        if ($end && !preg_match($pattern,$end)) {
-            $notify[] = ['error','Invalid date format'];
-            return redirect()->route('admin.withdraw.log')->withNotify($notify);
+        if ($userId) {
+            $withdrawals = $withdrawals->where('user_id',$userId);
         }
 
+        $withdrawals = $withdrawals->searchable(['trx','user:username'])->dateFilter();
 
-        if ($start) {
-            $withdrawals = Withdrawal::where('status','!=',0)->whereDate('created_at',Carbon::parse($start));
-        }
-        if($end){
-            $withdrawals = Withdrawal::where('status','!=',0)->whereDate('created_at','>=',Carbon::parse($start))->whereDate('created_at','<=',Carbon::parse($end));
-        }
+        $request = request();
         if ($request->method) {
-            $method = WithdrawMethod::findOrFail($request->method);
-            $withdrawals = $withdrawals->where('method_id',$method->id);
+            $withdrawals = $withdrawals->where('method_id',$request->method);
         }
+        if (!$summary) {
+            return $withdrawals->with(['user','method'])->orderBy('id','desc')->paginate(getPaginate());
+        }else{
 
-        if ($scope == 'pending') {
-            $withdrawals = $withdrawals->where('status', 2);
-        }elseif($scope == 'approved'){
-            $withdrawals = $withdrawals->where('status', 1);
-        }elseif($scope == 'rejected') {
-            $withdrawals = $withdrawals->where('status', 3);
+            $successful = clone $withdrawals;
+            $pending = clone $withdrawals;
+            $rejected = clone $withdrawals;
+
+            $successfulSummary = $successful->where('status',Status::PAYMENT_SUCCESS)->sum('amount');
+            $pendingSummary = $pending->where('status',Status::PAYMENT_PENDING)->sum('amount');
+            $rejectedSummary = $rejected->where('status',Status::PAYMENT_REJECT)->sum('amount');
+
+
+            return [
+                'data'=> $withdrawals->with(['user','method'])->orderBy('id','desc')->paginate(getPaginate()),
+                'summary'=>[
+                    'successful'=>$successfulSummary,
+                    'pending'=>$pendingSummary,
+                    'rejected'=>$rejectedSummary,
+                ]
+            ];
         }
-
-        $withdrawals = $withdrawals->with(['user', 'method'])->paginate(getPaginate());
-        $pageTitle = 'Withdraw Log';
-        $emptyMessage = 'No Withdrawals Found';
-        $dateSearch = $search;
-        return view('admin.withdraw.withdrawals', compact('pageTitle', 'emptyMessage', 'dateSearch', 'withdrawals','scope'));
-
-
     }
 
     public function details($id)
     {
-        $general = GeneralSetting::first();
-        $withdrawal = Withdrawal::where('id',$id)->where('status', '!=', 0)->with(['user','method'])->firstOrFail();
-        $pageTitle = $withdrawal->user->username.' Withdraw Requested ' . showAmount($withdrawal->amount) . ' '.$general->cur_text;
-        $details = $withdrawal->withdraw_information ? json_encode($withdrawal->withdraw_information) : null;
-
-
-
-        $methodImage =  getImage(imagePath()['withdraw']['method']['path'].'/'. $withdrawal->method->image,'800x800');
-
-        return view('admin.withdraw.detail', compact('pageTitle', 'withdrawal','details','methodImage'));
+        $withdrawal = Withdrawal::where('id',$id)->where('status', '!=', Status::PAYMENT_INITIATE)->with(['user','method'])->firstOrFail();
+        $pageTitle  = $withdrawal->user->username.' Withdraw Requested ' . showAmount($withdrawal->amount);
+        $details    = $withdrawal->withdraw_information ? json_encode($withdrawal->withdraw_information) : null;
+        return view('admin.withdraw.detail', compact('pageTitle', 'withdrawal','details'));
     }
 
     public function approve(Request $request)
     {
         $request->validate(['id' => 'required|integer']);
-        $withdraw = Withdrawal::where('id',$request->id)->where('status',2)->with('user')->firstOrFail();
-        $withdraw->status = 1;
+        $withdraw                 = Withdrawal::where('id',$request->id)->where('status',Status::PAYMENT_PENDING)->with('user')->firstOrFail();
+        $withdraw->status         = Status::PAYMENT_SUCCESS;
         $withdraw->admin_feedback = $request->details;
         $withdraw->save();
 
-        $general = GeneralSetting::first();
         notify($withdraw->user, 'WITHDRAW_APPROVE', [
             'method_name' => $withdraw->method->name,
             'method_currency' => $withdraw->currency,
-            'method_amount' => showAmount($withdraw->final_amount),
-            'amount' => showAmount($withdraw->amount),
-            'charge' => showAmount($withdraw->charge),
-            'currency' => $general->cur_text,
-            'rate' => showAmount($withdraw->rate),
+            'method_amount' => showAmount($withdraw->final_amount,currencyFormat:false),
+            'amount' => showAmount($withdraw->amount,currencyFormat:false),
+            'charge' => showAmount($withdraw->charge,currencyFormat:false),
+            'rate' => showAmount($withdraw->rate,currencyFormat:false),
             'trx' => $withdraw->trx,
             'admin_details' => $request->details
         ]);
 
-        $notify[] = ['success', 'Withdrawal marked as approved.'];
-        return redirect()->route('admin.withdraw.pending')->withNotify($notify);
+        $notify[] = ['success', 'Withdrawal approved successfully'];
+        return to_route('admin.withdraw.data.pending')->withNotify($notify);
     }
 
 
     public function reject(Request $request)
     {
-        $general = GeneralSetting::first();
         $request->validate(['id' => 'required|integer']);
-        $withdraw = Withdrawal::where('id',$request->id)->where('status',2)->firstOrFail();
+        $withdraw = Withdrawal::where('id',$request->id)->where('status',Status::PAYMENT_PENDING)->with('user')->firstOrFail();
 
-        $withdraw->status = 3;
+        $withdraw->status = Status::PAYMENT_REJECT;
         $withdraw->admin_feedback = $request->details;
         $withdraw->save();
 
-        $user = User::find($withdraw->user_id);
+        $user = $withdraw->user;
         $user->balance += $withdraw->amount;
         $user->save();
 
-
-
-            $transaction = new Transaction();
-            $transaction->user_id = $withdraw->user_id;
-            $transaction->amount = $withdraw->amount;
-            $transaction->post_balance = $user->balance;
-            $transaction->charge = 0;
-            $transaction->trx_type = '+';
-            $transaction->details = showAmount($withdraw->amount) . ' ' . $general->cur_text . ' Refunded from withdrawal rejection';
-            $transaction->trx = $withdraw->trx;
-            $transaction->save();
-
-
-        
+        $transaction = new Transaction();
+        $transaction->user_id = $withdraw->user_id;
+        $transaction->amount = $withdraw->amount;
+        $transaction->post_balance = $user->balance;
+        $transaction->charge = 0;
+        $transaction->trx_type = '+';
+        $transaction->remark = 'withdraw_reject';
+        $transaction->details = 'Refunded for withdrawal rejection';
+        $transaction->trx = $withdraw->trx;
+        $transaction->save();
 
         notify($user, 'WITHDRAW_REJECT', [
             'method_name' => $withdraw->method->name,
             'method_currency' => $withdraw->currency,
-            'method_amount' => showAmount($withdraw->final_amount),
-            'amount' => showAmount($withdraw->amount),
-            'charge' => showAmount($withdraw->charge),
-            'currency' => $general->cur_text,
-            'rate' => showAmount($withdraw->rate),
+            'method_amount' => showAmount($withdraw->final_amount,currencyFormat:false),
+            'amount' => showAmount($withdraw->amount,currencyFormat:false),
+            'charge' => showAmount($withdraw->charge,currencyFormat:false),
+            'rate' => showAmount($withdraw->rate,currencyFormat:false),
             'trx' => $withdraw->trx,
-            'post_balance' => showAmount($user->balance),
+            'post_balance' => showAmount($user->balance,currencyFormat:false),
             'admin_details' => $request->details
         ]);
 
-        $notify[] = ['success', 'Withdrawal has been rejected.'];
-        return redirect()->route('admin.withdraw.pending')->withNotify($notify);
+        $notify[] = ['success', 'Withdrawal rejected successfully'];
+        return to_route('admin.withdraw.data.pending')->withNotify($notify);
     }
 
 }

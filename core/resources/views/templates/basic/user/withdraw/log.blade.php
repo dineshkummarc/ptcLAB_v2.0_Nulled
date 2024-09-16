@@ -1,112 +1,164 @@
-
-@extends($activeTemplate .'layouts.user')
+@extends($activeTemplate . 'layouts.master')
 @section('content')
-@include($activeTemplate.'breadcrumb')
-<section class="cmn-section">
-   <div class="container">
-       <div class="row">
-           <div class="col-md-12">
-            <div class="card table-card">
-              <div class="card-body p-o">
-                   <div class="table-responsive--sm">
-                       <table class="table table-striped">
-                           <thead class="thead-dark">
-                           <tr>
-                               <th scope="col">@lang('Transaction ID')</th>
-                               <th scope="col">@lang('Gateway')</th>
-                               <th scope="col">@lang('Amount')</th>
-                               <th scope="col">@lang('Charge')</th>
-                               <th scope="col">@lang('After Charge')</th>
-                               <th scope="col">@lang('Rate')</th>
-                               <th scope="col">@lang('Receivable')</th>
-                               <th scope="col">@lang('Status')</th>
-                               <th scope="col">@lang('Time')</th>
-                           </tr>
-                           </thead>
-                           <tbody>
-                    
-                               @forelse($withdraws as $k=>$data)
-                                   <tr>
-                                       <td data-label="@lang('Transaction Id')">{{$data->trx}}</td>
-                                       <td data-label="@lang('Gateway')">{{ $data->method->name   }}</td>
-                                       <td data-label="@lang('Amount')">
-                                           <strong>{{showAmount($data->amount)}} {{$general->cur_text}}</strong>
-                                       </td>
-                                       <td data-label="@lang('Charge')" class="text-danger">
-                                           {{showAmount($data->charge)}} {{$general->cur_text}}
-                                       </td>
-                                       <td data-label="@lang('After Charge')">
-                                           {{showAmount($data->after_charge)}} {{$general->cur_text}}
-                                       </td>
-                                       <td data-label="@lang('Rate')">
-                                           {{$data->rate +0}}
-                                       </td>
-                                       <td data-label="@lang('Receivable')"  class="text-success">
-                                           <strong>{{showAmount($data->final_amount)}} {{$data->currency}}</strong>
-                                       </td>
-                                       <td data-label="@lang('Status')">
-                                           @if($data->status == 2)
-                                               <span class="badge badge-warning">@lang('Pending')</span>
-                                           @elseif($data->status == 1)
-                                               <span class="badge badge-success">@lang('Completed')</span>
-                                               <button class="btn btn-sm btn-info infoBtn" data-info="{{ $data->admin_feedback }}">@lang('information')</button>
-                                           @elseif($data->status == 3)
-                                               <span class="badge badge-danger">@lang('Rejected')</span>
-                                               <button class="btn btn-sm btn-info infoBtn" data-info="{{ $data->admin_feedback }}">@lang('information')</button>
-                                           @endif
+    <div class="cmn-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-12 ">
+                        <div class="mb-3">
+                            <form >
+                                <div class="d-flex justify-content-end">
+                                    <div class="input-group w-auto">
+                                        <input type="text" name="search" class="form-control"
+                                            value="{{ request()->search }}" placeholder="@lang('Search by transactions')">
+                                        <button class="input-group-text bg-primary text-white border-0">
+                                            <i class="las la-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        @if (!blank(!$withdraws))
+                        <div class="card">
+                            <div class="card-body p-0">
+                                <div class="table-responsive--sm">
+                                    <table class="table">
+                                        <thead class="thead-dark">
+                                            <tr>
+                                                <th>@lang('Gateway | Transaction')</th>
+                                                <th class="text-center">@lang('Initiated')</th>
+                                                <th class="text-center">@lang('Amount')</th>
+                                                <th class="text-center">@lang('Conversion')</th>
+                                                <th class="text-center">@lang('Status')</th>
+                                                <th>@lang('Action')</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($withdraws as $withdraw)
+                                                <tr>
+                                                    <td>
+                                                        <span class="fw-bold"><span class="text-primary">
+                                                                {{ __(@$withdraw->method->name) }}</span></span>
+                                                        <br>
+                                                        <small>{{ $withdraw->trx }}</small>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        {{ showDateTime($withdraw->created_at) }} <br>
+                                                        {{ diffForHumans($withdraw->created_at) }}
+                                                    </td>
+                                                    <td class="text-center">
+                                                       {{ showAmount($withdraw->amount) }} -
+                                                        <span class="text-danger"
+                                                            title="@lang('charge')">{{ showAmount($withdraw->charge) }}
+                                                        </span>
+                                                        <br>
+                                                        <strong title="@lang('Amount after charge')">
+                                                            {{ showAmount($withdraw->amount - $withdraw->charge) }}
+                                                        </strong>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        1 {{ __(gs('cur_text')) }} = {{ showAmount($withdraw->rate,currencyFormat:false) }}
+                                                        {{ __($withdraw->currency) }}
+                                                        <br>
+                                                        <strong>{{ showAmount($withdraw->final_amount,currencyFormat:false) }}
+                                                            {{ __($withdraw->currency) }}</strong>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @php echo $withdraw->statusBadge @endphp
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn--sm btn--base detailBtn"
+                                                            data-user_data="{{ json_encode($withdraw->withdraw_information) }}"
+                                                            @if ($withdraw->status == Status::PAYMENT_REJECT) data-admin_feedback="{{ $withdraw->admin_feedback }}" @endif>
+                                                            <i class="la la-desktop"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="card">
+                            <div class="card-body p-0">
+                                @include($activeTemplate . 'partials.empty', [
+                                    'message' => 'Withdraw not found',
+                                ])
+                            </div>
+                        </div>
+                    @endif
 
-                                       </td>
-                                       <td data-label="@lang('Time')">
-                                           <i class="fa fa-calendar"></i> {{date('d M, Y ', strtotime($data->created_at))}}
-                                           <span class="pl-1"></span> {{date('h:i A', strtotime($data->created_at))}}
-                                       </td>
-                                   </tr>
-                            @empty
-                            <tr>
-                                <td class="text-muted text-center" colspan="100%">@lang('Data not found')</td>
-                            </tr>
-                            @endforelse
-                           </tbody>
-                       </table>
-                   </div>
-                
-              </div>
+                    @if ($withdraws->hasPages())
+                        <div class="card-footer">
+                            {{ $withdraws->links() }}
+                        </div>
+                    @endif
+                </div>
             </div>
-
-               {{$withdraws->links($activeTemplate.'paginate')}}
-           </div>
-       </div>
-   </div>
-</section>
+        </div>
+    </div>
 
 
-<!-- Modal -->
-    <div class="modal fade" id="infoModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
-         aria-hidden="true">
+
+    {{-- APPROVE MODAL --}}
+    <div id="detailModal" class="modal fade" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <strong class="modal-title method-name" id="exampleModalLabel">@lang('Information Modal')</strong>
-                    <a href="javascript:void(0)" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </a>
+                    <h5 class="modal-title">@lang('Details')</h5>
+                    <span type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="las la-times"></i>
+                    </span>
                 </div>
                 <div class="modal-body">
-                  <p></p>
+                    <ul class="list-group userData">
+
+                    </ul>
+                    <div class="feedback"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark btn--sm" data-bs-dismiss="modal">@lang('Close')</button>
                 </div>
             </div>
         </div>
     </div>
 @endsection
+
 @push('script')
-<script type="text/javascript">
-  (function ($) {
-     "use strict";
-      $('.infoBtn').click(function(){
-        var modal = $('#infoModal');
-        modal.find('p').html($(this).data('info'));
-        modal.modal('show');
-      });
-  })(jQuery);
-</script>
+    <script>
+        (function($) {
+            "use strict";
+            $('.detailBtn').on('click', function() {
+                var modal = $('#detailModal');
+                var userData = $(this).data('user_data');
+                var html = ``;
+                userData.forEach(element => {
+                    if (element.type != 'file') {
+                        html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>${element.name}</span>
+                            <span">${element.value}</span>
+                        </li>`;
+                    }
+                });
+                modal.find('.userData').html(html);
+
+                if ($(this).data('admin_feedback') != undefined) {
+                    var adminFeedback = `
+                        <div class="my-3">
+                            <strong>@lang('Admin Feedback')</strong>
+                            <p>${$(this).data('admin_feedback')}</p>
+                        </div>
+                    `;
+                } else {
+                    var adminFeedback = '';
+                }
+
+                modal.find('.feedback').html(adminFeedback);
+
+                modal.modal('show');
+            });
+        })(jQuery);
+    </script>
 @endpush

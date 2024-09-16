@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Gateway\Stripe;
 
+use App\Constants\Status;
 use App\Models\Deposit;
-use App\Models\GeneralSetting;
 use App\Http\Controllers\Gateway\PaymentController;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -35,11 +35,11 @@ class ProcessController extends Controller
     {
         $track = Session::get('Track');
         $deposit = Deposit::where('trx', $track)->orderBy('id', 'DESC')->first();
-        if ($deposit->status == 1) {
+        if ($deposit->status == Status::PAYMENT_SUCCESS) {
             $notify[] = ['error', 'Invalid request.'];
-            return redirect()->route(gatewayRedirectUrl())->withNotify($notify);
+            return redirect($deposit->failed_url)->withNotify($notify);
         }
-        $this->validate($request, [
+        $request->validate([
             'cardNumber' => 'required',
             'cardExpiry' => 'required',
             'cardCVC' => 'required',
@@ -49,10 +49,14 @@ class ProcessController extends Controller
         $exp = $request->cardExpiry;
         $cvc = $request->cardCVC;
 
-        $exp = $pieces = explode("/", $_POST['cardExpiry']);
+        $exp = explode("/", $_POST['cardExpiry']);
+        if (!@$exp[1]) {
+            $notify[] = ['error', 'Invalid expiry date provided'];
+            return back()->withNotify($notify);
+        }
         $emo = trim($exp[0]);
         $eyr = trim($exp[1]);
-        $cnts = round($deposit->final_amo, 2) * 100;
+        $cents = round($deposit->final_amount, 2) * 100;
 
         $stripeAcc = json_decode($deposit->gatewayCurrency()->gateway_parameter);
 
@@ -74,22 +78,23 @@ class ProcessController extends Controller
                 $charge = Charge::create(array(
                     'card' => $token['id'],
                     'currency' => $deposit->method_currency,
-                    'amount' => $cnts,
+                    'amount' => $cents,
                     'description' => 'item',
                 ));
-                
+
                 if ($charge['status'] == 'succeeded') {
-                    PaymentController::userDataUpdate($deposit->trx);
-                    $notify[] = ['success', 'Payment captured successfully.'];
-                    return redirect()->route(gatewayRedirectUrl(true))->withNotify($notify);
+                    PaymentController::userDataUpdate($deposit);
+                    $notify[] = ['success', 'Payment captured successfully'];
+                    return redirect($deposit->success_url)->withNotify($notify);
                 }
             } catch (\Exception $e) {
                 $notify[] = ['error', $e->getMessage()];
             }
         } catch (\Exception $e) {
+
             $notify[] = ['error', $e->getMessage()];
         }
 
-        return redirect()->route(gatewayRedirectUrl())->withNotify($notify);
+        return back()->withNotify($notify);
     }
 }

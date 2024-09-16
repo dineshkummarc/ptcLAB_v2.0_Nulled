@@ -2,66 +2,80 @@
 
 namespace App\Providers;
 
+use App\Constants\Status;
+use App\Lib\Searchable;
 use App\Models\AdminNotification;
 use App\Models\Deposit;
 use App\Models\Frontend;
-use App\Models\GeneralSetting;
-use App\Models\Language;
-use App\Models\Page;
+use App\Models\Ptc;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\Withdrawal;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
-
+use Illuminate\Support\Facades\View;
 
 class AppServiceProvider extends ServiceProvider
 {
     /**
      * Register any application services.
-     *
-     * @return void
      */
-    public function register()
+    public function register(): void
     {
-        $this->app['request']->server->set('HTTPS', true);
+        Builder::mixin(new Searchable);
     }
 
     /**
      * Bootstrap any application services.
-     *
-     * @return void
      */
-    public function boot()
+    public function boot(): void
     {
- 
+        if (!cache()->get('SystemInstalled')) {
+            $envFilePath = base_path('.env');
+            if (!file_exists($envFilePath)) {
+                header('Location: install');
+                exit;
+            }
+
+            $envContents = file_get_contents($envFilePath);
+            if (empty($envContents)) {
+                header('Location: install');
+                exit;
+            }else {
+                cache()->put('SystemInstalled', true);
+            }
+        }
+
 
         $activeTemplate = activeTemplate();
-        $general = GeneralSetting::first();
-        $viewShare['general'] = $general;
         $viewShare['activeTemplate'] = $activeTemplate;
         $viewShare['activeTemplateTrue'] = activeTemplate(true);
-        $viewShare['language'] = Language::all();
-        $viewShare['pages'] = Page::where('tempname',$activeTemplate)->where('slug','!=','home')->get();
+        $viewShare['emptyMessage'] = 'Data not found';
         view()->share($viewShare);
-        
+
 
         view()->composer('admin.partials.sidenav', function ($view) {
             $view->with([
-                'banned_users_count'           => User::banned()->count(),
-                'email_unverified_users_count' => User::emailUnverified()->count(),
-                'sms_unverified_users_count'   => User::smsUnverified()->count(),
-                'pending_ticket_count'         => SupportTicket::whereIN('status', [0,2])->count(),
-                'pending_deposits_count'    => Deposit::pending()->count(),
-                'pending_withdraw_count'    => Withdrawal::pending()->count(),
+                'bannedUsersCount'           => User::banned()->count(),
+                'emailUnverifiedUsersCount' => User::emailUnverified()->count(),
+                'mobileUnverifiedUsersCount'   => User::mobileUnverified()->count(),
+                'kycUnverifiedUsersCount'   => User::kycUnverified()->count(),
+                'kycPendingUsersCount'   => User::kycPending()->count(),
+                'pendingTicketCount'         => SupportTicket::whereIN('status', [Status::TICKET_OPEN, Status::TICKET_REPLY])->count(),
+                'pendingDepositsCount'    => Deposit::pending()->count(),
+                'pendingWithdrawCount'    => Withdrawal::pending()->count(),
+                'pendingPtcCount'            => Ptc::pending()->count(),
+
+
+                'updateAvailable'    => version_compare(gs('available_version'),systemDetails()['version'],'>') ? 'v'.gs('available_version') : false,
             ]);
         });
 
         view()->composer('admin.partials.topnav', function ($view) {
             $view->with([
-                'adminNotifications'=>AdminNotification::where('read_status',0)->with('user')->orderBy('id','desc')->get(),
+                'adminNotifications' => AdminNotification::where('is_read', Status::NO)->with('user')->orderBy('id', 'desc')->take(10)->get(),
+                'adminNotificationCount' => AdminNotification::where('is_read', Status::NO)->count(),
             ]);
         });
 
@@ -72,26 +86,13 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
 
-        if($general->force_ssl){
+        if (gs('force_ssl')) {
             \URL::forceScheme('https');
         }
 
 
-        Paginator::useBootstrap();
+        Paginator::useBootstrapFive();
 
-
-
-        // Enable pagination
-        if (!Collection::hasMacro('paginate')) {
-
-            Collection::macro('paginate', 
-                function ($perPage = 15, $page = null, $options = []) {
-                $page = $page ?: (Paginator::resolveCurrentPage() ?: 1);
-                return (new LengthAwarePaginator(
-                    $this->forPage($page, $perPage)->values()->all(), $this->count(), $perPage, $page, $options))
-                    ->withPath('');
-            });
-        }
-        
+        View::addNamespace('Template',resource_path('views/templates/'.activeTemplateName()));
     }
 }

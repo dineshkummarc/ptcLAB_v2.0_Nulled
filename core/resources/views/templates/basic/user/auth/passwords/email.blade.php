@@ -1,30 +1,29 @@
-@extends($activeTemplate .'layouts.master')
+@extends($activeTemplate.'layouts.frontend')
 @section('content')
-@include($activeTemplate.'breadcrumb')
-    <div class="pt-120 pb-120">
-        <div class="container">
-            <div class="row justify-content-center">
-    
-                <div class="col-md-6">
-                    <div class="password-area">
-                        <form class="contact-form" action="{{ route('user.password.email') }}" method="post" onsubmit="return submitUserForm();">
-                            @csrf
-                            <div class="form-group">
-                              <div class="input-group mb-2">
-                                <div class="input-group-prepend">
-                                  <div class="input-group-text"><i class="las la-envelope"></i></div>
-                                </div>
-                                <input type="email" name="email" class="form-control" placeholder="@lang('Email')">
-                              </div>
-                            </div><!-- form-group end -->
-                            <div class="form-group text-center">
-                              <button type="submit" class="cmn-btn rounded-0 w-100">@lang('Submit')</button>
-                              <p class="mt-20"> <a href="{{ route('user.login') }}">@lang('Back to login')</a></p>
-                            </div>
-                        </form>
+<section class="pt-120 pb-120">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-7 col-xl-6">
+                <div class="password-area">
+                    <h3 class="title mb-2">{{ __($pageTitle) }}</h3>
+                    <div class="mb-4">
+                        <p>@lang('To recover your account please provide your email or username to find your account.')</p>
                     </div>
+                    <form method="POST" action="{{ route('user.password.email') }}" class="verify-gcaptcha">
+                        @csrf
+                        <div class="form-group">
+                            <label class="form-label">@lang('Email or Username')</label>
+                            <input type="text" class="form-control form--control" name="value" value="{{ old('value') }}" required autofocus="off">
+                        </div>
+                        <x-captcha />
+                        <div class="form-group">
+                            <button type="submit" class="btn btn--base w-100">@lang('Submit')</button>
+                            <p class="mt-20"><a href="{{ route('user.login') }}">@lang('Back to login')</a></p>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
+</section>
 @endsection

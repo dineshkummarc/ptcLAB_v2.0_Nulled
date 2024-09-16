@@ -1,54 +1,44 @@
-@php
-    $loginCaption = getContent('login.content',true);
-@endphp
-@extends($activeTemplate .'layouts.master')
+@extends($activeTemplate .'layouts.frontend')
 @section('content')
-@include($activeTemplate.'breadcrumb')
-    <section class="pt-120 pb-120">
-      <div class="container">
-        <div class="row justify-content-center">
-          <div class="col-lg-6">
-            <div class="login-area">
-              <h2 class="title mb-3">@lang('Email Verification')</h2>
-              <form class="action-form mt-50 loginForm" action="{{route('user.verify.email')}}" method="post">
-                @csrf
-                <div class="form-group">
-                  <label>@lang('Verification Code')</label>
-                  <div class="input-group mb-2">
-                    <div class="input-group-prepend">
-                      <div class="input-group-text"><i class="las la-code"></i></div>
+<section class="pt-120 pb-120">
+<div class="container">
+    <div class="d-flex justify-content-center">
+        <div class="verification-code-wrapper">
+            <div class="verification-area">
+                <form action="{{route('user.verify.email')}}" method="POST" class="submit-form">
+                    @csrf
+                    <p class="verification-text">@lang('A 6 digit verification code sent to your email address'):  {{ showEmailAddress(auth()->user()->email) }}</p>
+
+                    @include($activeTemplate.'partials.verification_code')
+
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn--base w-100">@lang('Submit')</button>
                     </div>
-                    <input type="text" name="email_verified_code" id="code" class="form-control" placeholder="@lang('Verification Code')">
-                  </div>
-                </div>
-                <div class="form-group text-center">
-                  <button type="submit" class="cmn-btn rounded-0 w-100">@lang('Submit')</button>
-                  <p class="mt-20">@lang('Please check including your Junk/Spam Folder. if not found, you can') <a href="{{route('user.send.verify.code')}}?type=email" class="forget-pass"> @lang('Resend code')</a></p>
-                  @if ($errors->has('resend'))
-                      <br/>
-                      <small class="text-danger">{{ $errors->first('resend') }}</small>
-                  @endif
-                </div>
-              </form>
+
+                    <div class="mb-3">
+                        <p>
+                            @lang('If you don\'t get any code'), <span class="countdown-wrapper">@lang('try again after') <span id="countdown" class="fw-bold">--</span> @lang('seconds')</span> <a href="{{route('user.send.verify.code', 'email')}}" class="try-again-link d-none"> @lang('Try again')</a>
+                        </p>
+                        <a href="{{ route('user.logout') }}">@lang('Logout')</a>
+                    </div>
+                </form>
             </div>
-          </div>
         </div>
-      </div>
-    </section>
+    </div>
+</div>
+</section>
 @endsection
 @push('script')
 <script>
-    (function($){
-        "use strict";
-        $('#code').on('input change', function () {
-          var xx = document.getElementById('code').value;
-          
-              $(this).val(function (index, value) {
-                 value = value.substr(0,7);
-                  return value.replace(/\W/gi, '').replace(/(.{3})/g, '$1 ');
-              });
-          
-      });
-    })(jQuery)
+    var distance =Number("{{@$user->ver_code_send_at->addMinutes(2)->timestamp-time()}}");
+    var x = setInterval(function() {
+        distance--;
+        document.getElementById("countdown").innerHTML = distance;
+        if (distance <= 0) {
+            clearInterval(x);
+            document.querySelector('.countdown-wrapper').classList.add('d-none');
+            document.querySelector('.try-again-link').classList.remove('d-none');
+        }
+    }, 1000);
 </script>
 @endpush

@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Gateway\MercadoPago;
 
+use App\Constants\Status;
 use App\Models\Deposit;
-use App\Models\GeneralSetting;
 use App\Http\Controllers\Gateway\PaymentController;
 use App\Http\Controllers\Controller;
-use Session;
+use App\Models\Gateway;
+use Illuminate\Http\Request;
 
 class ProcessController extends Controller
 {
@@ -25,16 +26,16 @@ class ProcessController extends Controller
                     'description' => 'Deposit from '.$user->username,
                     'quantity' => 1,
                     'currency_id' => $gatewayCurrency->currency,
-                    'unit_price' => $deposit->final_amo
+                    'unit_price' => $deposit->final_amount
                 ]
             ],
             'payer' => [
                 'email' => $user->email,
             ],
             'back_urls' => [
-                'success' => route(gatewayRedirectUrl(true)),
+                'success' => route('home').$deposit->success_url,
                 'pending' => '',
-                'failure' => route(gatewayRedirectUrl()),
+                'failure' => route('home').$deposit->failed_url,
             ],
             'notification_url' =>  route('ipn.'.$alias),
             'auto_return' =>  'approved',
@@ -64,7 +65,7 @@ class ProcessController extends Controller
             $send['redirect_url'] = $result['init_point'];
         } else {
             $send['error'] = true;
-            $send['message'] = 'Some problem occured with api.';
+            $send['message'] = 'Some problem ocurred with api.';
         }
 
         $send['view'] = '';
@@ -73,12 +74,11 @@ class ProcessController extends Controller
 
     public function ipn(Request $request)
     {
-        $track = Session::get('Track');
-        $deposit = Deposit::where('trx', $track)->orderBy('id', 'DESC')->first();
-        $gatewayCurrency = $deposit->gatewayCurrency();
-    	$gatewayAcc = json_decode($gatewayCurrency->gateway_parameter);
-        $cancelUrl = route(gatewayRedirectUrl());
-        $paymentUrl = "https://api.mercadopago.com/v1/payments/" . $request['data']['id'] . "?access_token=" . $gatewayAcc->access_token;
+        $paymentId = json_decode(json_encode($request->all()))->data->id;
+        $gateway = Gateway::where('alias','MercadoPago')->first();
+        $param = json_decode($gateway->gateway_parameters);
+
+        $paymentUrl = "https://api.mercadopago.com/v1/payments/" . $paymentId . "?access_token=" . $param->access_token->value;
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $paymentUrl);
@@ -86,14 +86,17 @@ class ProcessController extends Controller
         $paymentData = curl_exec($ch);
         curl_close($ch);
 
-
         $payment = json_decode($paymentData, true);
-        if ($payment['status'] == 'approved') {
-            PaymentController::userDataUpdate($deposit->trx);
+        $trx = $payment['additional_info']['items'][0]['id'];
+        $deposit = Deposit::where('trx', $trx)->where('status',Status::PAYMENT_INITIATE)->orderBy('id', 'DESC')->first();
+
+        if ($payment['status'] == 'approved' && $deposit) {
+            PaymentController::userDataUpdate($deposit);
             $notify[] = ['success', 'Payment captured successfully.'];
-            return redirect()->route(gatewayRedirectUrl(true))->withNotify($notify);
+            return redirect($deposit->success_url)->withNotify($notify);
         }
+
         $notify[] = ['success', 'Unable to process'];
-        return redirect()->route(gatewayRedirectUrl())->withNotify($notify);
+        return redirect($deposit->failed_url)->withNotify($notify);
     }
 }

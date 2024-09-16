@@ -1,44 +1,31 @@
-
-@extends($activeTemplate .'layouts.master')
+@extends($activeTemplate.'layouts.frontend')
 @section('content')
-@include($activeTemplate.'breadcrumb')
-    <div class="pt-120 pb-120">
-        <div class="container">
-            <div class="row justify-content-center">
-    
-                <div class="col-md-6">
-                    <div class="password-area">
-                        <h6 class="text-center mb-3">@lang('Enter Verification Code')</h6>
-                        <form class="contact-form" action="{{ route('user.password.verify-code') }}" method="post" onsubmit="return submitUserForm();">
-                            @csrf
-                            <input type="hidden" name="email" value="{{ $email }}">
-                            <div class="form-group">
-                                <label>@lang('Verification Code')</label>
-                                <input type="text" name="code" id="code" class="form-control">
-                            </div>
-                            <div class="form-group text-center">
-                              <button type="submit" class="cmn-btn rounded-0 w-100">@lang('Submit')</button>
-                              <p class="mt-20"> <a href="{{ route('user.password.request') }}">@lang('Try to send again')</a></p>
-                            </div>
-                        </form>
+<section class="pt-120 pb-120">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-7 col-xl-5">
+                <div class="d-flex justify-content-center">
+                    <div class="verification-code-wrapper">
+                        <div class="verification-area">
+                            <h5 class="pb-3 text-center border-bottom">@lang('Verify Email Address')</h5>
+                            <form action="{{ route('user.password.verify.code') }}" method="POST" class="submit-form">
+                                @csrf
+                                <p class="verification-text">@lang('A 6 digit verification code sent to your email address') :  {{ showEmailAddress($email) }}</p>
+                                <input type="hidden" name="email" value="{{ $email }}">
+                                @include($activeTemplate.'partials.verification_code')
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn--base w-100">@lang('Submit')</button>
+                                </div>
+                                <div class="form-group">
+                                    @lang('Please check including your Junk/Spam Folder. if not found, you can')
+                                    <a href="{{ route('user.password.request') }}">@lang('Try to send again')</a>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
+</section>
 @endsection
-@push('script')
-<script>
-    (function($){
-        "use strict";
-        $('#code').on('input change', function () {
-          var xx = document.getElementById('code').value;
-          $(this).val(function (index, value) {
-             value = value.substr(0,7);
-              return value.replace(/\W/gi, '').replace(/(.{3})/g, '$1 ');
-          });
-      });
-    })(jQuery)
-</script>
-@endpush

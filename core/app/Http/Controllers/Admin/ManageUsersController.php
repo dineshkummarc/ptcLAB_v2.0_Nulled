@@ -1,432 +1,496 @@
 <?php
 namespace App\Http\Controllers\Admin;
 
+use App\Constants\Status;
 use App\Http\Controllers\Controller;
 use App\Models\Deposit;
-use App\Models\EmailLog;
-use App\Models\Gateway;
-use App\Models\GeneralSetting;
+use App\Models\NotificationLog;
+use App\Models\NotificationTemplate;
 use App\Models\Transaction;
 use App\Models\User;
-use App\Models\UserLogin;
-use App\Models\WithdrawMethod;
 use App\Models\Withdrawal;
-use App\Models\CommissionLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
+use App\Rules\FileTypeValidate;
 
 class ManageUsersController extends Controller
 {
     public function allUsers()
     {
-        $pageTitle = 'Manage Users';
-        $emptyMessage = 'No user found';
-        $users = User::orderBy('id','desc')->paginate(getPaginate());
-        return view('admin.users.list', compact('pageTitle', 'emptyMessage', 'users'));
+        $pageTitle = 'All Users';
+        $users     = $this->userData();
+        return view('admin.users.list', compact('pageTitle', 'users'));
     }
 
     public function activeUsers()
     {
-        $pageTitle = 'Manage Active Users';
-        $emptyMessage = 'No active user found';
-        $users = User::active()->orderBy('id','desc')->paginate(getPaginate());
-        return view('admin.users.list', compact('pageTitle', 'emptyMessage', 'users'));
+        $pageTitle = 'Active Users';
+        $users     = $this->userData('active');
+        return view('admin.users.list', compact('pageTitle', 'users'));
     }
 
     public function bannedUsers()
     {
         $pageTitle = 'Banned Users';
-        $emptyMessage = 'No banned user found';
-        $users = User::banned()->orderBy('id','desc')->paginate(getPaginate());
-        return view('admin.users.list', compact('pageTitle', 'emptyMessage', 'users'));
+        $users     = $this->userData('banned');
+        return view('admin.users.list', compact('pageTitle', 'users'));
     }
 
     public function emailUnverifiedUsers()
     {
         $pageTitle = 'Email Unverified Users';
-        $emptyMessage = 'No email unverified user found';
-        $users = User::emailUnverified()->orderBy('id','desc')->paginate(getPaginate());
-        return view('admin.users.list', compact('pageTitle', 'emptyMessage', 'users'));
+        $users     = $this->userData('emailUnverified');
+        return view('admin.users.list', compact('pageTitle', 'users'));
     }
+
+    public function kycUnverifiedUsers()
+    {
+        $pageTitle = 'KYC Unverified Users';
+        $users     = $this->userData('kycUnverified');
+        return view('admin.users.list', compact('pageTitle', 'users'));
+    }
+
+    public function kycPendingUsers()
+    {
+        $pageTitle = 'KYC Unverified Users';
+        $users     = $this->userData('kycPending');
+        return view('admin.users.list', compact('pageTitle', 'users'));
+    }
+
     public function emailVerifiedUsers()
     {
         $pageTitle = 'Email Verified Users';
-        $emptyMessage = 'No email verified user found';
-        $users = User::emailVerified()->orderBy('id','desc')->paginate(getPaginate());
-        return view('admin.users.list', compact('pageTitle', 'emptyMessage', 'users'));
+        $users     = $this->userData('emailVerified');
+        return view('admin.users.list', compact('pageTitle', 'users'));
     }
 
 
-    public function smsUnverifiedUsers()
+    public function mobileUnverifiedUsers()
     {
-        $pageTitle = 'SMS Unverified Users';
-        $emptyMessage = 'No sms unverified user found';
-        $users = User::smsUnverified()->orderBy('id','desc')->paginate(getPaginate());
-        return view('admin.users.list', compact('pageTitle', 'emptyMessage', 'users'));
+        $pageTitle = 'Mobile Unverified Users';
+        $users     = $this->userData('mobileUnverified');
+        return view('admin.users.list', compact('pageTitle', 'users'));
     }
 
 
-    public function smsVerifiedUsers()
+    public function mobileVerifiedUsers()
     {
-        $pageTitle = 'SMS Verified Users';
-        $emptyMessage = 'No sms verified user found';
-        $users = User::smsVerified()->orderBy('id','desc')->paginate(getPaginate());
-        return view('admin.users.list', compact('pageTitle', 'emptyMessage', 'users'));
+        $pageTitle = 'Mobile Verified Users';
+        $users     = $this->userData('mobileVerified');
+        return view('admin.users.list', compact('pageTitle', 'users'));
     }
 
-    
+
     public function usersWithBalance()
     {
-        $pageTitle = 'Users with balance';
-        $emptyMessage = 'No sms verified user found';
-        $users = User::where('balance','!=',0)->orderBy('id','desc')->paginate(getPaginate());
-        return view('admin.users.list', compact('pageTitle', 'emptyMessage', 'users'));
+        $pageTitle = 'Users with Balance';
+        $users     = $this->userData('withBalance');
+        return view('admin.users.list', compact('pageTitle', 'users'));
     }
 
 
-
-    public function search(Request $request, $scope)
-    {
-        $search = $request->search;
-        $users = User::where(function ($user) use ($search) {
-            $user->where('username', 'like', "%$search%")
-                ->orWhere('email', 'like', "%$search%");
-        });
-        $pageTitle = '';
-        if ($scope == 'active') {
-            $pageTitle = 'Active ';
-            $users = $users->where('status', 1);
-        }elseif($scope == 'banned'){
-            $pageTitle = 'Banned';
-            $users = $users->where('status', 0);
-        }elseif($scope == 'emailUnverified'){
-            $pageTitle = 'Email Unverified ';
-            $users = $users->where('ev', 0);
-        }elseif($scope == 'smsUnverified'){
-            $pageTitle = 'SMS Unverified ';
-            $users = $users->where('sv', 0);
-        }elseif($scope == 'withBalance'){
-            $pageTitle = 'With Balance ';
-            $users = $users->where('balance','!=',0);
+    protected function userData($scope = null){
+        if ($scope) {
+            $users = User::$scope();
+        }else{
+            $users = User::query();
         }
-
-        $users = $users->paginate(getPaginate());
-        $pageTitle .= 'User Search - ' . $search;
-        $emptyMessage = 'No search result found';
-        return view('admin.users.list', compact('pageTitle', 'search', 'scope', 'emptyMessage', 'users'));
+        return $users->searchable(['username','email'])->orderBy('id','desc')->paginate(getPaginate());
     }
 
 
     public function detail($id)
     {
-        $pageTitle = 'User Detail';
-        $user = User::findOrFail($id);
-        $totalDeposit = Deposit::where('user_id',$user->id)->where('status',1)->sum('amount');
-        $totalWithdraw = Withdrawal::where('user_id',$user->id)->where('status',1)->sum('amount');
+        $user      = User::findOrFail($id);
+        $pageTitle = 'User Detail - '.$user->username;
+
+        $totalDeposit     = Deposit::where('user_id',$user->id)->successful()->sum('amount');
+        $totalWithdrawals = Withdrawal::where('user_id',$user->id)->approved()->sum('amount');
         $totalTransaction = Transaction::where('user_id',$user->id)->count();
-        $countries = json_decode(file_get_contents(resource_path('views/partials/country.json')));
-        $reff = User::where('id',$user->ref_by)->first();
-        $totalReferral = User::where('ref_by',$user->id)->count();
-        return view('admin.users.detail', compact('pageTitle','totalReferral','user','totalDeposit','totalWithdraw','reff','totalTransaction','countries'));
+        $countries        = json_decode(file_get_contents(resource_path('views/partials/country.json')));
+        return view('admin.users.detail', compact('pageTitle', 'user','totalDeposit','totalWithdrawals','totalTransaction','countries'));
+    }
+
+
+    public function kycDetails($id)
+    {
+        $pageTitle = 'KYC Details';
+        $user      = User::findOrFail($id);
+        return view('admin.users.kyc_detail', compact('pageTitle','user'));
+    }
+
+    public function kycApprove($id)
+    {
+        $user     = User::findOrFail($id);
+        $user->kv = Status::KYC_VERIFIED;
+        $user->save();
+
+        notify($user,'KYC_APPROVE',[]);
+
+        $notify[] = ['success','KYC approved successfully'];
+        return to_route('admin.users.kyc.pending')->withNotify($notify);
+    }
+
+    public function kycReject(Request $request,$id)
+    {
+        $request->validate([
+            'reason' => 'required'
+        ]);
+        $user                       = User::findOrFail($id);
+        $user->kv                   = Status::KYC_UNVERIFIED;
+        $user->kyc_rejection_reason = $request->reason;
+        $user->save();
+
+        notify($user,'KYC_REJECT',[
+            'reason' => $request->reason
+        ]);
+
+        $notify[] = ['success','KYC rejected successfully'];
+        return to_route('admin.users.kyc.pending')->withNotify($notify);
     }
 
 
     public function update(Request $request, $id)
     {
-        $user = User::findOrFail($id);
+        $user         = User::findOrFail($id);
+        $countryData  = json_decode(file_get_contents(resource_path('views/partials/country.json')));
+        $countryArray = (array)$countryData;
+        $countries    = implode(',', array_keys($countryArray));
 
-        $countryData = json_decode(file_get_contents(resource_path('views/partials/country.json')));
+        $countryCode = $request->country;
+        $country     = $countryData->$countryCode->country;
+        $dialCode    = $countryData->$countryCode->dial_code;
 
         $request->validate([
-            'firstname' => 'required|max:50',
-            'lastname' => 'required|max:50',
-            'email' => 'required|email|max:90|unique:users,email,' . $user->id,
-            'mobile' => 'required|unique:users,mobile,' . $user->id,
-            'country' => 'required',
+            'firstname' => 'required|string|max:40',
+            'lastname'  => 'required|string|max:40',
+            'email'     => 'required|email|string|max:40|unique:users,email,' . $user->id,
+            'mobile'    => 'required|string|max:40',
+            'country'   => 'required|in:'.$countries,
         ]);
-        $countryCode = $request->country;
-        $user->mobile = $request->mobile;
-        $user->country_code = $countryCode;
+
+        $exists = User::where('mobile',$request->mobile)->where('dial_code',$dialCode)->where('id','!=',$user->id)->exists();
+        if ($exists) {
+            $notify[] = ['error', 'The mobile number already exists.'];
+            return back()->withNotify($notify);
+        }
+
+        $user->mobile    = $request->mobile;
         $user->firstname = $request->firstname;
-        $user->lastname = $request->lastname;
-        $user->email = $request->email;
-        $user->address = [
-                            'address' => $request->address,
-                            'city' => $request->city,
-                            'state' => $request->state,
-                            'zip' => $request->zip,
-                            'country' => @$countryData->$countryCode->country,
-                        ];
-        $user->status = $request->status ? 1 : 0;
-        $user->ev = $request->ev ? 1 : 0;
-        $user->sv = $request->sv ? 1 : 0;
-        $user->ts = $request->ts ? 1 : 0;
-        $user->tv = $request->tv ? 1 : 0;
+        $user->lastname  = $request->lastname;
+        $user->email     = $request->email;
+
+        $user->address      = $request->address;
+        $user->city         = $request->city;
+        $user->state        = $request->state;
+        $user->zip          = $request->zip;
+        $user->country_name = @$country;
+        $user->dial_code    = $dialCode;
+        $user->country_code = $countryCode;
+
+        $user->ev = $request->ev ? Status::VERIFIED : Status::UNVERIFIED;
+        $user->sv = $request->sv ? Status::VERIFIED : Status::UNVERIFIED;
+        $user->ts = $request->ts ? Status::ENABLE : Status::DISABLE;
+        if (!$request->kv) {
+            $user->kv = Status::KYC_UNVERIFIED;
+            if ($user->kyc_data) {
+                foreach ($user->kyc_data as $kycData) {
+                    if ($kycData->type == 'file') {
+                        fileManager()->removeFile(getFilePath('verify').'/'.$kycData->value);
+                    }
+                }
+            }
+            $user->kyc_data = null;
+        }else{
+            $user->kv = Status::KYC_VERIFIED;
+        }
         $user->save();
 
-        $notify[] = ['success', 'User detail has been updated'];
-        return redirect()->back()->withNotify($notify);
+        $notify[] = ['success', 'User details updated successfully'];
+        return back()->withNotify($notify);
     }
 
     public function addSubBalance(Request $request, $id)
     {
-        $request->validate(['amount' => 'required|numeric|gt:0']);
+        $request->validate([
+            'amount' => 'required|numeric|gt:0',
+            'act'    => 'required|in:add,sub',
+            'remark' => 'required|string|max:255',
+        ]);
 
-        $user = User::findOrFail($id);
+        $user   = User::findOrFail($id);
         $amount = $request->amount;
-        $general = GeneralSetting::first(['cur_text','cur_sym']);
-        $trx = getTrx();
+        $trx    = getTrx();
 
-        if ($request->act) {
+        $transaction = new Transaction();
+
+        if ($request->act == 'add') {
             $user->balance += $amount;
-            $user->save();
-            $notify[] = ['success', $general->cur_sym . $amount . ' has been added to ' . $user->username . '\'s balance'];
 
-            $transaction = new Transaction();
-            $transaction->user_id = $user->id;
-            $transaction->amount = $amount;
-            $transaction->post_balance = $user->balance;
-            $transaction->charge = 0;
             $transaction->trx_type = '+';
-            $transaction->details = 'Added Balance Via Admin';
-            $transaction->trx =  $trx;
-            $transaction->save();
+            $transaction->remark   = 'balance_add';
 
-            notify($user, 'BAL_ADD', [
-                'trx' => $trx,
-                'amount' => showAmount($amount),
-                'currency' => $general->cur_text,
-                'post_balance' => showAmount($user->balance),
-            ]);
+            $notifyTemplate = 'BAL_ADD';
+
+            $notify[] = ['success', 'Balance added successfully'];
 
         } else {
             if ($amount > $user->balance) {
-                $notify[] = ['error', $user->username . '\'s has insufficient balance.'];
+                $notify[] = ['error', $user->username . ' doesn\'t have sufficient balance.'];
                 return back()->withNotify($notify);
             }
+
             $user->balance -= $amount;
-            $user->save();
 
-         
-
-            $transaction = new Transaction();
-            $transaction->user_id = $user->id;
-            $transaction->amount = $amount;
-            $transaction->post_balance = $user->balance;
-            $transaction->charge = 0;
             $transaction->trx_type = '-';
-            $transaction->details = 'Subtract Balance Via Admin';
-            $transaction->trx =  $trx;
-            $transaction->save();
+            $transaction->remark   = 'balance_subtract';
 
-
-            notify($user, 'BAL_SUB', [
-                'trx' => $trx,
-                'amount' => showAmount($amount),
-                'currency' => $general->cur_text,
-                'post_balance' => showAmount($user->balance)
-            ]);
-            $notify[] = ['success', $general->cur_sym . $amount . ' has been subtracted from ' . $user->username . '\'s balance'];
+            $notifyTemplate = 'BAL_SUB';
+            $notify[]       = ['success', 'Balance subtracted successfully'];
         }
-        return back()->withNotify($notify);
-    }
 
+        $user->save();
 
-    public function userLoginHistory($id)
-    {
-        $user = User::findOrFail($id);
-        $pageTitle = 'User Login History - ' . $user->username;
-        $emptyMessage = 'No users login found.';
-        $login_logs = $user->login_logs()->orderBy('id','desc')->with('user')->paginate(getPaginate());
-        return view('admin.users.logins', compact('pageTitle', 'emptyMessage', 'login_logs'));
-    }
+        $transaction->user_id      = $user->id;
+        $transaction->amount       = $amount;
+        $transaction->post_balance = $user->balance;
+        $transaction->charge       = 0;
+        $transaction->trx          = $trx;
+        $transaction->details      = $request->remark;
+        $transaction->save();
 
-
-
-    public function showEmailSingleForm($id)
-    {
-        $user = User::findOrFail($id);
-        $pageTitle = 'Send Email To: ' . $user->username;
-        return view('admin.users.email_single', compact('pageTitle', 'user'));
-    }
-
-    public function sendEmailSingle(Request $request, $id)
-    {
-        $request->validate([
-            'message' => 'required|string|max:65000',
-            'subject' => 'required|string|max:190',
+        notify($user, $notifyTemplate, [
+            'trx'          => $trx,
+            'amount'       => showAmount($amount,currencyFormat:false),
+            'remark'       => $request->remark,
+            'post_balance' => showAmount($user->balance,currencyFormat:false)
         ]);
 
-        $user = User::findOrFail($id);
-        sendGeneralEmail($user->email, $request->subject, $request->message, $user->username);
-        $notify[] = ['success', $user->username . ' will receive an email shortly.'];
-        return back()->withNotify($notify);
-    }
-
-    public function transactions(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
-        if ($request->search) {
-            $search = $request->search;
-            $pageTitle = 'Search User Transactions : ' . $user->username;
-            $transactions = $user->transactions()->where('trx', $search)->with('user')->orderBy('id','desc')->paginate(getPaginate());
-            $emptyMessage = 'No transactions';
-            return view('admin.reports.transactions', compact('pageTitle', 'search', 'user', 'transactions', 'emptyMessage'));
-        }
-        $pageTitle = 'User Transactions : ' . $user->username;
-        $transactions = $user->transactions()->with('user')->orderBy('id','desc')->paginate(getPaginate());
-        $emptyMessage = 'No transactions';
-        return view('admin.reports.transactions', compact('pageTitle', 'user', 'transactions', 'emptyMessage'));
-    }
-
-    public function deposits(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
-        $userId = $user->id;
-        if ($request->search) {
-            $search = $request->search;
-            $pageTitle = 'Search User Deposits : ' . $user->username;
-            $deposits = $user->deposits()->where('trx', $search)->orderBy('id','desc')->paginate(getPaginate());
-            $emptyMessage = 'No deposits';
-            return view('admin.deposit.log', compact('pageTitle', 'search', 'user', 'deposits', 'emptyMessage','userId'));
-        }
-
-        $pageTitle = 'User Deposit : ' . $user->username;
-        $deposits = $user->deposits()->orderBy('id','desc')->with(['gateway','user'])->paginate(getPaginate());
-        $successful = $user->deposits()->orderBy('id','desc')->where('status',1)->sum('amount');
-        $pending = $user->deposits()->orderBy('id','desc')->where('status',2)->sum('amount');
-        $rejected = $user->deposits()->orderBy('id','desc')->where('status',3)->sum('amount');
-        $emptyMessage = 'No deposits';
-        $scope = 'all';
-        return view('admin.deposit.log', compact('pageTitle', 'user', 'deposits', 'emptyMessage','userId','scope','successful','pending','rejected'));
-    }
-
-
-    public function depViaMethod($method,$type = null,$userId){
-        $method = Gateway::where('alias',$method)->firstOrFail();        
-        $user = User::findOrFail($userId);
-        if ($type == 'approved') {
-            $pageTitle = 'Approved Payment Via '.$method->name;
-            $deposits = Deposit::where('method_code','>=',1000)->where('user_id',$user->id)->where('method_code',$method->code)->where('status', 1)->orderBy('id','desc')->with(['user', 'gateway'])->paginate(getPaginate());
-        }elseif($type == 'rejected'){
-            $pageTitle = 'Rejected Payment Via '.$method->name;
-            $deposits = Deposit::where('method_code','>=',1000)->where('user_id',$user->id)->where('method_code',$method->code)->where('status', 3)->orderBy('id','desc')->with(['user', 'gateway'])->paginate(getPaginate());
-        }elseif($type == 'successful'){
-            $pageTitle = 'Successful Payment Via '.$method->name;
-            $deposits = Deposit::where('status', 1)->where('user_id',$user->id)->where('method_code',$method->code)->orderBy('id','desc')->with(['user', 'gateway'])->paginate(getPaginate());
-        }elseif($type == 'pending'){
-            $pageTitle = 'Pending Payment Via '.$method->name;
-            $deposits = Deposit::where('method_code','>=',1000)->where('user_id',$user->id)->where('method_code',$method->code)->where('status', 2)->orderBy('id','desc')->with(['user', 'gateway'])->paginate(getPaginate());
-        }else{
-            $pageTitle = 'Payment Via '.$method->name;
-            $deposits = Deposit::where('status','!=',0)->where('user_id',$user->id)->where('method_code',$method->code)->orderBy('id','desc')->with(['user', 'gateway'])->paginate(getPaginate());
-        }
-        $pageTitle = 'Deposit History: '.$user->username.' Via '.$method->name;
-        $methodAlias = $method->alias;
-        $emptyMessage = 'Deposit Log';
-        return view('admin.deposit.log', compact('pageTitle', 'emptyMessage', 'deposits','methodAlias','userId'));
-    }
-
-
-
-    public function withdrawals(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
-        if ($request->search) {
-            $search = $request->search;
-            $pageTitle = 'Search User Withdrawals : ' . $user->username;
-            $withdrawals = $user->withdrawals()->where('trx', 'like',"%$search%")->orderBy('id','desc')->paginate(getPaginate());
-            $emptyMessage = 'No withdrawals';
-            return view('admin.withdraw.withdrawals', compact('pageTitle', 'user', 'search', 'withdrawals', 'emptyMessage'));
-        }
-        $pageTitle = 'User Withdrawals : ' . $user->username;
-        $withdrawals = $user->withdrawals()->orderBy('id','desc')->paginate(getPaginate());
-        $emptyMessage = 'No withdrawals';
-        $userId = $user->id;
-        return view('admin.withdraw.withdrawals', compact('pageTitle', 'user', 'withdrawals', 'emptyMessage','userId'));
-    }
-
-    public  function withdrawalsViaMethod($method,$type,$userId){
-        $method = WithdrawMethod::findOrFail($method);
-        $user = User::findOrFail($userId);
-        if ($type == 'approved') {
-            $pageTitle = 'Approved Withdrawal of '.$user->username.' Via '.$method->name;
-            $withdrawals = Withdrawal::where('status', 1)->where('user_id',$user->id)->with(['user','method'])->orderBy('id','desc')->paginate(getPaginate());
-        }elseif($type == 'rejected'){
-            $pageTitle = 'Rejected Withdrawals of '.$user->username.' Via '.$method->name;
-            $withdrawals = Withdrawal::where('status', 3)->where('user_id',$user->id)->with(['user','method'])->orderBy('id','desc')->paginate(getPaginate());
-
-        }elseif($type == 'pending'){
-            $pageTitle = 'Pending Withdrawals of '.$user->username.' Via '.$method->name;
-            $withdrawals = Withdrawal::where('status', 2)->where('user_id',$user->id)->with(['user','method'])->orderBy('id','desc')->paginate(getPaginate());
-        }else{
-            $pageTitle = 'Withdrawals of '.$user->username.' Via '.$method->name;
-            $withdrawals = Withdrawal::where('status', '!=', 0)->where('user_id',$user->id)->with(['user','method'])->orderBy('id','desc')->paginate(getPaginate());
-        }
-        $emptyMessage = 'Withdraw Log Not Found';
-        return view('admin.withdraw.withdrawals', compact('pageTitle', 'withdrawals', 'emptyMessage','method'));
-    }
-
-    public function showEmailAllForm()
-    {
-        $pageTitle = 'Send Email To All Users';
-        return view('admin.users.email_all', compact('pageTitle'));
-    }
-
-    public function sendEmailAll(Request $request)
-    {
-        $request->validate([
-            'message' => 'required|string|max:65000',
-            'subject' => 'required|string|max:190',
-        ]);
-
-        foreach (User::where('status', 1)->cursor() as $user) {
-            sendGeneralEmail($user->email, $request->subject, $request->message, $user->username);
-        }
-
-        $notify[] = ['success', 'All users will receive an email shortly.'];
         return back()->withNotify($notify);
     }
 
     public function login($id){
-        $user = User::findOrFail($id);
-        Auth::login($user);
-        return redirect()->route('user.home');
+        Auth::loginUsingId($id);
+        return to_route('user.home');
     }
 
-    public function emailLog($id){
-        $user = User::findOrFail($id);
-        $pageTitle = 'Email log of '.$user->username;
-        $logs = EmailLog::where('user_id',$id)->with('user')->orderBy('id','desc')->paginate(getPaginate());
-        $emptyMessage = 'No data found';
-        return view('admin.users.email_log', compact('pageTitle','logs','emptyMessage','user'));
-    }
-
-    public function emailDetails($id){
-        $email = EmailLog::findOrFail($id);
-        $pageTitle = 'Email details';
-        return view('admin.users.email_details', compact('pageTitle','email'));
-    }
-
-
-    public function totalReferral($id)
+    public function status(Request $request,$id)
     {
-        $users = User::where('ref_by',$id)->latest()->paginate(getPaginate());
-        $me = User::find($id);
-        $pageTitle = 'Referrals Of - ' . $me->username;
-        $emptyMessage = 'No Referrals found.';
-        return view('admin.users.referrals', compact('pageTitle', 'emptyMessage', 'users'));
+        $user = User::findOrFail($id);
+        if ($user->status == Status::USER_ACTIVE) {
+            $request->validate([
+                'reason' => 'required|string|max:255'
+            ]);
+            $user->status     = Status::USER_BAN;
+            $user->ban_reason = $request->reason;
+            $notify[]         = ['success','User banned successfully'];
+        }else{
+            $user->status     = Status::USER_ACTIVE;
+            $user->ban_reason = null;
+            $notify[]         = ['success','User unbanned successfully'];
+        }
+        $user->save();
+        return back()->withNotify($notify);
+
     }
 
 
-    public function commissions($id)
+    public function showNotificationSingleForm($id)
     {
-        $commissionLog = CommissionLog::where('user_id',$id)->latest()->paginate(getPaginate());
-        $me = User::find($id);
-        $pageTitle = 'Commissions Of - ' . $me->username;
-        $emptyMessage = 'No Commissions found.';
-        return view('admin.users.commissions', compact('pageTitle', 'emptyMessage', 'commissionLog'));
+        $user = User::findOrFail($id);
+        if (!gs('en') && !gs('sn') && !gs('pn')) {
+            $notify[] = ['warning','Notification options are disabled currently'];
+            return to_route('admin.users.detail',$user->id)->withNotify($notify);
+        }
+        $pageTitle = 'Send Notification to ' . $user->username;
+        return view('admin.users.notification_single', compact('pageTitle', 'user'));
+    }
+
+    public function sendNotificationSingle(Request $request, $id)
+    {
+        $request->validate([
+            'message' => 'required',
+            'via'     => 'required|in:email,sms,push',
+            'subject' => 'required_if:via,email,push',
+            'image'   => ['nullable', 'image', new FileTypeValidate(['jpg', 'jpeg', 'png'])],
+        ]);
+
+        if (!gs('en') && !gs('sn') && !gs('pn')) {
+            $notify[] = ['warning', 'Notification options are disabled currently'];
+            return to_route('admin.dashboard')->withNotify($notify);
+        }
+
+        $imageUrl = null;
+        if($request->via == 'push' && $request->hasFile('image')){
+            $imageUrl = fileUploader($request->image, getFilePath('push'));
+        }
+
+        $template = NotificationTemplate::where('act', 'DEFAULT')->where($request->via.'_status', Status::ENABLE)->exists();
+        if(!$template){
+            $notify[] = ['warning', 'Default notification template is not enabled'];
+            return back()->withNotify($notify);
+        }
+
+        $user = User::findOrFail($id);
+        notify($user,'DEFAULT',[
+            'subject' => $request->subject,
+            'message' => $request->message,
+        ],[$request->via],pushImage:$imageUrl);
+        $notify[] = ['success', 'Notification sent successfully'];
+        return back()->withNotify($notify);
+    }
+
+    public function showNotificationAllForm()
+    {
+        if (!gs('en') && !gs('sn') && !gs('pn')) {
+            $notify[] = ['warning', 'Notification options are disabled currently'];
+            return to_route('admin.dashboard')->withNotify($notify);
+        }
+
+        $notifyToUser = User::notifyToUser();
+        $users        = User::active()->count();
+        $pageTitle    = 'Notification to Verified Users';
+
+        if (session()->has('SEND_NOTIFICATION') && !request()->email_sent) {
+            session()->forget('SEND_NOTIFICATION');
+        }
+
+        return view('admin.users.notification_all', compact('pageTitle', 'users', 'notifyToUser'));
+    }
+
+    public function sendNotificationAll(Request $request)
+    {
+        $request->validate([
+            'via'                          => 'required|in:email,sms,push',
+            'message'                      => 'required',
+            'subject'                      => 'required_if:via,email,push',
+            'start'                        => 'required|integer|gte:1',
+            'batch'                        => 'required|integer|gte:1',
+            'being_sent_to'                => 'required',
+            'cooling_time'                 => 'required|integer|gte:1',
+            'number_of_top_deposited_user' => 'required_if:being_sent_to,topDepositedUsers|integer|gte:0',
+            'number_of_days'               => 'required_if:being_sent_to,notLoginUsers|integer|gte:0',
+            'image'                        => ["nullable", 'image', new FileTypeValidate(['jpg', 'jpeg', 'png'])],
+        ], [
+            'number_of_days.required_if'               => "Number of days field is required",
+            'number_of_top_deposited_user.required_if' => "Number of top deposited user field is required",
+        ]);
+
+        if (!gs('en') && !gs('sn') && !gs('pn')) {
+            $notify[] = ['warning', 'Notification options are disabled currently'];
+            return to_route('admin.dashboard')->withNotify($notify);
+        }
+
+
+        $template = NotificationTemplate::where('act', 'DEFAULT')->where($request->via.'_status', Status::ENABLE)->exists();
+        if(!$template){
+            $notify[] = ['warning', 'Default notification template is not enabled'];
+            return back()->withNotify($notify);
+        }
+
+        if ($request->being_sent_to == 'selectedUsers') {
+            if (session()->has("SEND_NOTIFICATION")) {
+                $request->merge(['user' => session()->get('SEND_NOTIFICATION')['user']]);
+            } else {
+                if (!$request->user || !is_array($request->user) || empty($request->user)) {
+                    $notify[] = ['error', "Ensure that the user field is populated when sending an email to the designated user group"];
+                    return back()->withNotify($notify);
+                }
+            }
+        }
+
+        $scope     = $request->being_sent_to;
+        $userQuery = User::oldest()->active()->$scope();
+
+        if (session()->has("SEND_NOTIFICATION")) {
+            $totalUserCount = session('SEND_NOTIFICATION')['total_user'];
+        } else {
+            $totalUserCount = (clone $userQuery)->count() - ($request->start-1);
+        }
+
+
+        if ($totalUserCount <= 0) {
+            $notify[] = ['error', "Notification recipients were not found among the selected user base."];
+            return back()->withNotify($notify);
+        }
+
+
+        $imageUrl = null;
+
+        if ($request->via == 'push' && $request->hasFile('image')) {
+            if (session()->has("SEND_NOTIFICATION")) {
+                $request->merge(['image' => session()->get('SEND_NOTIFICATION')['image']]);
+            }
+            if ($request->hasFile("image")) {
+                $imageUrl = fileUploader($request->image, getFilePath('push'));
+            }
+        }
+
+        $users = (clone $userQuery)->skip($request->start - 1)->limit($request->batch)->get();
+
+        foreach ($users as $user) {
+            notify($user, 'DEFAULT', [
+                'subject' => $request->subject,
+                'message' => $request->message,
+            ], [$request->via], pushImage: $imageUrl);
+        }
+
+        return $this->sessionForNotification($totalUserCount, $request);
+    }
+
+
+    private function sessionForNotification($totalUserCount, $request)
+    {
+        if (session()->has('SEND_NOTIFICATION')) {
+            $sessionData                = session("SEND_NOTIFICATION");
+            $sessionData['total_sent'] += $sessionData['batch'];
+        } else {
+            $sessionData               = $request->except('_token');
+            $sessionData['total_sent'] = $request->batch;
+            $sessionData['total_user'] = $totalUserCount;
+        }
+
+        $sessionData['start'] = $sessionData['total_sent'] + 1;
+
+        if ($sessionData['total_sent'] >= $totalUserCount) {
+            session()->forget("SEND_NOTIFICATION");
+            $message = ucfirst($request->via) . " notifications were sent successfully";
+            $url     = route("admin.users.notification.all");
+        } else {
+            session()->put('SEND_NOTIFICATION', $sessionData);
+            $message = $sessionData['total_sent'] . " " . $sessionData['via'] . "  notifications were sent successfully";
+            $url     = route("admin.users.notification.all") . "?email_sent=yes";
+        }
+        $notify[] = ['success', $message];
+        return redirect($url)->withNotify($notify);
+    }
+
+    public function countBySegment($methodName){
+        return User::active()->$methodName()->count();
+    }
+
+    public function list()
+    {
+        $query = User::active();
+
+        if (request()->search) {
+            $query->where(function ($q) {
+                $q->where('email', 'like', '%' . request()->search . '%')->orWhere('username', 'like', '%' . request()->search . '%');
+            });
+        }
+        $users = $query->orderBy('id', 'desc')->paginate(getPaginate());
+        return response()->json([
+            'success' => true,
+            'users'   => $users,
+            'more'    => $users->hasMorePages()
+        ]);
+    }
+
+    public function notificationLog($id){
+        $user      = User::findOrFail($id);
+        $pageTitle = 'Notifications Sent to '.$user->username;
+        $logs      = NotificationLog::where('user_id',$id)->with('user')->orderBy('id','desc')->paginate(getPaginate());
+        return view('admin.reports.notification_history', compact('pageTitle','logs','user'));
     }
 
 }

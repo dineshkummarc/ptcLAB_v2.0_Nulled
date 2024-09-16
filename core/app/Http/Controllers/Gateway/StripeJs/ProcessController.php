@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Gateway\StripeJs;
 
+use App\Constants\Status;
 use App\Models\Deposit;
 use App\Http\Controllers\Gateway\PaymentController;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use Auth;
 use Session;
 use Stripe\Charge;
 use Stripe\Customer;
@@ -20,9 +20,9 @@ class ProcessController extends Controller
     {
         $StripeJSAcc = json_decode($deposit->gatewayCurrency()->gateway_parameter);
         $val['key'] = $StripeJSAcc->publishable_key;
-        $val['name'] = Auth::user()->username;
+        $val['name'] = auth()->user()->username;
         $val['description'] = "Payment with Stripe";
-        $val['amount'] = $deposit->final_amo * 100;
+        $val['amount'] = round($deposit->final_amount,2) * 100;
         $val['currency'] = $deposit->method_currency;
         $send['val'] = $val;
 
@@ -41,9 +41,9 @@ class ProcessController extends Controller
 
         $track = Session::get('Track');
         $deposit = Deposit::where('trx', $track)->orderBy('id', 'DESC')->first();
-        if ($deposit->status == 1) {
+        if ($deposit->status == Status::PAYMENT_SUCCESS) {
             $notify[] = ['error', 'Invalid request.'];
-            return redirect()->route(gatewayRedirectUrl())->withNotify($notify);
+            return redirect($deposit->failed_url)->withNotify($notify);
         }
         $StripeJSAcc = json_decode($deposit->gatewayCurrency()->gateway_parameter);
 
@@ -52,26 +52,36 @@ class ProcessController extends Controller
 
         Stripe::setApiVersion("2020-03-02");
 
-        $customer =  Customer::create([
-            'email' => $request->stripeEmail,
-            'source' => $request->stripeToken,
-        ]);
+        try {
+            $customer =  Customer::create([
+                'email' => $request->stripeEmail,
+                'source' => $request->stripeToken,
+            ]);
+        } catch (\Exception $e) {
+            $notify[] = ['error', $e->getMessage()];
+            return back()->withNotify($notify);
+        }
 
-        $charge = Charge::create([
-            'customer' => $customer->id,
-            'description' => 'Payment with Stripe',
-            'amount' => $deposit->final_amo * 100,
-            'currency' => $deposit->method_currency,
-        ]);
+        try {
+            $charge = Charge::create([
+                'customer' => $customer->id,
+                'description' => 'Payment with Stripe',
+                'amount' => round($deposit->final_amount,2) * 100,
+                'currency' => $deposit->method_currency,
+            ]);
+        } catch (\Exception $e) {
+            $notify[] = ['error', $e->getMessage()];
+            return back()->withNotify($notify);
+        }
 
 
         if ($charge['status'] == 'succeeded') {
-            PaymentController::userDataUpdate($deposit->trx);
-            $notify[] = ['success', 'Payment captured successfully.'];
-            return redirect()->route(gatewayRedirectUrl(true))->withNotify($notify);
+            PaymentController::userDataUpdate($deposit);
+            $notify[] = ['success', 'Payment captured successfully'];
+            return redirect($deposit->success_url)->withNotify($notify);
         }else{
-            $notify[] = ['success', 'Failed to process.'];
-            return redirect()->route(gatewayRedirectUrl())->withNotify($notify);
+            $notify[] = ['error', 'Failed to process'];
+            return back()->withNotify($notify);
         }
     }
 }

@@ -2,20 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Constants\Status;
+use App\Traits\UserNotify;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use Notifiable;
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
-
-    protected $guarded = ['id'];
+    use HasApiTokens, UserNotify;
 
     /**
      * The attributes that should be hidden for arrays.
@@ -23,7 +18,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $hidden = [
-        'password', 'remember_token',
+        'password', 'remember_token','ver_code','balance','kyc_data'
     ];
 
     /**
@@ -34,17 +29,12 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'address' => 'object',
+        'kyc_data' => 'object',
         'ver_code_send_at' => 'datetime'
     ];
 
-    protected $data = [
-        'data'=>1
-    ];
 
-
-
-
-    public function login_logs()
+    public function loginLogs()
     {
         return $this->hasMany(UserLogin::class);
     }
@@ -56,12 +46,30 @@ class User extends Authenticatable
 
     public function deposits()
     {
-        return $this->hasMany(Deposit::class)->where('status','!=',0);
+        return $this->hasMany(Deposit::class)->where('status','!=',Status::PAYMENT_INITIATE);
     }
 
     public function withdrawals()
     {
-        return $this->hasMany(Withdrawal::class)->where('status','!=',0);
+        return $this->hasMany(Withdrawal::class)->where('status','!=',Status::PAYMENT_INITIATE);
+    }
+
+    public function tickets()
+    {
+        return $this->hasMany(SupportTicket::class);
+    }
+
+
+    public function runningPlan(): Attribute
+    {
+        if ($this->plan && $this->expire_date > now()) {
+            $running = true;
+        } else {
+            $running = false;
+        }
+        return new Attribute(
+            get: fn () => $running,
+        );
     }
 
     public function plan()
@@ -82,44 +90,83 @@ class User extends Authenticatable
 
     public function refBy()
     {
-        return $this->belongsTo(User::class,'ref_by');
+        return $this->belongsTo(User::class, 'ref_by');
     }
 
+    public function referrals()
+    {
+        return $this->hasMany(User::class, 'ref_by');
+    }
+
+    public function allReferrals()
+    {
+        return $this->referrals()->with('refBy');
+    }
+
+
+    public function fullname(): Attribute
+    {
+        return new Attribute(
+            get: fn () => $this->firstname . ' ' . $this->lastname,
+        );
+    }
+
+    public function mobileNumber(): Attribute
+    {
+        return new Attribute(
+            get: fn () => $this->dial_code . $this->mobile,
+        );
+    }
 
     // SCOPES
-
-    public function getFullnameAttribute()
+    public function scopeActive($query)
     {
-        return $this->firstname . ' ' . $this->lastname;
+        return $query->where('status', Status::USER_ACTIVE)->where('ev',Status::VERIFIED)->where('sv',Status::VERIFIED);
     }
 
-    public function scopeActive()
+    public function scopeBanned($query)
     {
-        return $this->where('status', 1);
+        return $query->where('status', Status::USER_BAN);
     }
 
-    public function scopeBanned()
+    public function scopeEmailUnverified($query)
     {
-        return $this->where('status', 0);
+        return $query->where('ev', Status::UNVERIFIED);
     }
 
-    public function scopeEmailUnverified()
+    public function scopeMobileUnverified($query)
     {
-        return $this->where('ev', 0);
+        return $query->where('sv', Status::UNVERIFIED);
     }
 
-    public function scopeSmsUnverified()
+    public function scopeKycUnverified($query)
     {
-        return $this->where('sv', 0);
-    }
-    public function scopeEmailVerified()
-    {
-        return $this->where('ev', 1);
+        return $query->where('kv', Status::KYC_UNVERIFIED);
     }
 
-    public function scopeSmsVerified()
+    public function scopeKycPending($query)
     {
-        return $this->where('sv', 1);
+        return $query->where('kv', Status::KYC_PENDING);
+    }
+
+    public function scopeEmailVerified($query)
+    {
+        return $query->where('ev', Status::VERIFIED);
+    }
+
+    public function scopeMobileVerified($query)
+    {
+        return $query->where('sv', Status::VERIFIED);
+    }
+
+    public function scopeWithBalance($query)
+    {
+        return $query->where('balance','>', 0);
+    }
+
+    public function deviceTokens()
+    {
+        return $this->hasMany(DeviceToken::class);
     }
 
 }

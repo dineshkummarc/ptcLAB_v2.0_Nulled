@@ -1,54 +1,39 @@
-
-@extends($activeTemplate .'layouts.user')
+@extends($activeTemplate.'layouts.master')
 @section('content')
-@include($activeTemplate.'breadcrumb')
-<section class="cmn-section">
-
+<div class="cmn-section">
     <div class="container">
-
-        <div class="row mb-60-80 justify-content-center">
+        <div class="row justify-content-center">
             <div class="col-md-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <img src="{{$deposit->gateway_currency()->methodImage()}}" class="card-img-top w-100" alt="..">
-                            </div>
-                            <div class="col-md-8">
-                                <form action="{{ route('ipn.'.$deposit->gateway->alias) }}" method="POST" class="text-center">
+                <div class="card custom--card">
+                    <div class="card-header">
+                        <h5 class="card-title">@lang('Paystack')</h5>
+                    </div>
+                    <div class="card-body p-5">
+                        <form action="{{ route('ipn.'.$deposit->gateway->alias) }}" method="POST" class="text-center">
                             @csrf
                             <ul class="list-group text-center">
-                                <li class="list-group-item">
-                                    @lang('Please Pay: '){{showAmount($deposit->final_amo)}} {{$deposit->method_currency}}
+                                <li class="list-group-item d-flex justify-content-between">
+                                    @lang('You have to pay '):
+                                    <strong>{{showAmount($deposit->final_amount,currencyFormat:false)}}
+                                        {{__($deposit->method_currency)}}</strong>
                                 </li>
-                                <li class="list-group-item">
-                                    @lang('You will get: '){{showAmount($deposit->amount)}}  {{$deposit->method_currency}}
-                                </li>
-                                <li class="list-group-item">
-                                    <button type="button" class="cmn-btn btn-round w-100 custom-success text-center" id="btn-confirm">@lang('Pay Now')</button>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    @lang('You will get '):
+                                    <strong>{{showAmount($deposit->amount)}}</strong>
                                 </li>
                             </ul>
-                            <script
-                                src="//js.paystack.co/v1/inline.js"
-                                data-key="{{ $data->key }}"
-                                data-email="{{ $data->email }}"
-                                data-amount="{{$data->amount}}"
-                                data-currency="{{$data->currency}}"
-                                data-ref="{{ $data->ref }}"
-                                data-custom-button="btn-confirm"
-                            >
+                            <button type="button" class="btn btn--base w-100 mt-3" id="btn-confirm">@lang('Pay
+                                Now')</button>
+                            <script src="//js.paystack.co/v1/inline.js" data-key="{{ $data->key }}"
+                                data-email="{{ $data->email }}" data-amount="{{ round($data->amount) }}"
+                                data-currency="{{$data->currency}}" data-ref="{{ $data->ref }}"
+                                data-custom-button="btn-confirm">
                             </script>
                         </form>
-
-
-                        </div>
                     </div>
                 </div>
             </div>
-            </div>
+        </div>
     </div>
 </div>
-</section>
-
 @endsection
-

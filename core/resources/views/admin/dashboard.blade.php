@@ -1,263 +1,255 @@
 @extends('admin.layouts.app')
 
 @section('panel')
-      @if(@json_decode($general->sys_version)->version > systemDetails()['version'])
-        <div class="row">
-            <div class="col-md-12">
-                <div class="card text-white bg-warning mb-3">
-                    <div class="card-header">
-                        <h3 class="card-title"> @lang('New Version Available') <button class="btn btn--dark float-right">@lang('Version') {{json_decode($general->sys_version)->version}}</button> </h3>
-                    </div>
-                    <div class="card-body">
-                        <h5 class="card-title text-dark">@lang('What is the Update ?')</h5>
-                        <p><pre  class="f-size--24">{{json_decode($general->sys_version)->details}}</pre></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
-        @if(@json_decode($general->sys_version)->message)
-        <div class="row">
-            @foreach(json_decode($general->sys_version)->message as $msg)
-              <div class="col-md-12">
-                  <div class="alert border border--primary" role="alert">
-                      <div class="alert__icon bg--primary"><i class="far fa-bell"></i></div>
-                      <p class="alert__message">@php echo $msg; @endphp</p>
-                      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">×</span>
-                    </button>
-                </div>
-              </div>
-            @endforeach
-        </div>
-        @endif
 
-    <div class="row mb-none-30">
-        <div class="col-xl-3 col-lg-4 col-sm-6 mb-30">
-            <div class="dashboard-w1 bg--primary b-radius--10 box-shadow">
-                <div class="icon">
-                    <i class="fa fa-users"></i>
-                </div>
-                <div class="details">
-                    <div class="numbers">
-                        <span class="amount">{{$widget['total_users']}}</span>
-                    </div>
-                    <div class="desciption">
-                        <span class="text--small">@lang('Total Users')</span>
-                    </div>
-                    <a href="{{route('admin.users.all')}}" class="btn btn-sm text--small bg--white text--black box--shadow3 mt-3">@lang('View All')</a>
-                </div>
-            </div>
+    <div class="row gy-4">
+
+        <div class="col-xxl-3 col-sm-6">
+
+            <x-widget
+                style="6"
+                link="{{route('admin.users.all')}}"
+                icon="las la-users"
+                title="Total Users"
+                value="{{$widget['total_users']}}"
+                bg="primary"
+            />
         </div><!-- dashboard-w1 end -->
-        <div class="col-xl-3 col-lg-4 col-sm-6 mb-30">
-            <div class="dashboard-w1 bg--cyan b-radius--10 box-shadow">
-                <div class="icon">
-                    <i class="fa fa-users"></i>
-                </div>
-                <div class="details">
-                    <div class="numbers">
-                        <span class="amount">{{$widget['verified_users']}}</span>
-                    </div>
-                    <div class="desciption">
-                        <span class="text--small">@lang('Total Verified Users')</span>
-                    </div>
-                    <a href="{{route('admin.users.active')}}" class="btn btn-sm text--small bg--white text--black box--shadow3 mt-3">@lang('View All')</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-lg-4 col-sm-6 mb-30">
-            <div class="dashboard-w1 bg--orange b-radius--10 box-shadow ">
-                <div class="icon">
-                    <i class="la la-envelope"></i>
-                </div>
-                <div class="details">
-                    <div class="numbers">
-                        <span class="amount">{{$widget['email_unverified_users']}}</span>
-                    </div>
-                    <div class="desciption">
-                        <span class="text--small">@lang('Total Email Unverified Users')</span>
-                    </div>
-
-                    <a href="{{route('admin.users.email.unverified')}}" class="btn btn-sm text--small bg--white text--black box--shadow3 mt-3">@lang('View All')</a>
-                </div>
-            </div>
+        <div class="col-xxl-3 col-sm-6">
+            <x-widget
+                style="6"
+                link="{{route('admin.users.active')}}"
+                icon="las la-user-check"
+                title="Active Users"
+                value="{{$widget['verified_users']}}"
+                bg="success"
+            />
         </div><!-- dashboard-w1 end -->
-        <div class="col-xl-3 col-lg-4 col-sm-6 mb-30">
-            <div class="dashboard-w1 bg--pink b-radius--10 box-shadow ">
-                <div class="icon">
-                    <i class="fa fa-shopping-cart"></i>
-                </div>
-                <div class="details">
-                    <div class="numbers">
-                        <span class="amount">{{$widget['sms_unverified_users']}}</span>
-                    </div>
-                    <div class="desciption">
-                        <span class="text--small">@lang('Total SMS Unverified Users')</span>
-                    </div>
-
-                    <a href="{{route('admin.users.sms.unverified')}}" class="btn btn-sm text--small bg--white text--black box--shadow3 mt-3">@lang('View All')</a>
-                </div>
-            </div>
+        <div class="col-xxl-3 col-sm-6">
+            <x-widget
+                style="6"
+                link="{{route('admin.users.email.unverified')}}"
+                icon="lar la-envelope"
+                title="Email Unverified Users"
+                value="{{$widget['email_unverified_users']}}"
+                bg="danger"
+            />
         </div><!-- dashboard-w1 end -->
-
-
+        <div class="col-xxl-3 col-sm-6">
+            <x-widget
+                style="6"
+                link="{{route('admin.users.mobile.unverified')}}"
+                icon="las la-comment-slash"
+                title="Mobile Unverified Users"
+                value="{{$widget['mobile_unverified_users']}}"
+                bg="warning"
+            />
+        </div><!-- dashboard-w1 end -->
     </div><!-- row end-->
 
-
-
-    <div class="row mt-50 mb-none-30">
-        <div class="col-xl-6 mb-30">
-            <div class="card">
+    <div class="row mt-2 gy-4">
+        <div class="col-xxl-6">
+            <div class="card box-shadow3 h-100">
                 <div class="card-body">
-                    <h5 class="card-title">@lang('Monthly Deposit & Withdraw Report')</h5>
-                    <div id="apex-bar-chart"> </div>
+                    <h5 class="card-title">@lang('Deposits')</h5>
+                    <div class="widget-card-wrapper">
+
+                        <div class="widget-card bg--success">
+                            <a href="{{ route('admin.deposit.list') }}" class="widget-card-link"></a>
+                            <div class="widget-card-left">
+                                <div class="widget-card-icon">
+                                    <i class="fas fa-hand-holding-usd"></i>
+                                </div>
+                                <div class="widget-card-content">
+                                    <h6 class="widget-card-amount">{{ showAmount($deposit['total_deposit_amount']) }}</h6>
+                                    <p class="widget-card-title">@lang('Total Deposited')</p>
+                                </div>
+                            </div>
+                            <span class="widget-card-arrow">
+                                <i class="las la-angle-right"></i>
+                            </span>
+                        </div>
+
+                        <div class="widget-card bg--warning">
+                            <a href="{{ route('admin.deposit.pending') }}" class="widget-card-link"></a>
+                            <div class="widget-card-left">
+                                <div class="widget-card-icon">
+                                    <i class="fas fa-spinner"></i>
+                                </div>
+                                <div class="widget-card-content">
+                                    <h6 class="widget-card-amount">{{ $deposit['total_deposit_pending'] }}</h6>
+                                    <p class="widget-card-title">@lang('Pending Deposits')</p>
+                                </div>
+                            </div>
+                            <span class="widget-card-arrow">
+                                <i class="las la-angle-right"></i>
+                            </span>
+                        </div>
+
+                        <div class="widget-card bg--danger">
+                            <a href="{{ route('admin.deposit.rejected') }}" class="widget-card-link"></a>
+                            <div class="widget-card-left">
+                                <div class="widget-card-icon">
+                                    <i class="fas fa-ban"></i>
+                                </div>
+                                <div class="widget-card-content">
+                                    <h6 class="widget-card-amount">{{ $deposit['total_deposit_rejected'] }}</h6>
+                                    <p class="widget-card-title">@lang('Rejected Deposits')</p>
+                                </div>
+                            </div>
+                            <span class="widget-card-arrow">
+                                <i class="las la-angle-right"></i>
+                            </span>
+                        </div>
+
+                        <div class="widget-card bg--primary">
+                            <a href="{{ route('admin.deposit.list') }}" class="widget-card-link"></a>
+                            <div class="widget-card-left">
+                                <div class="widget-card-icon">
+                                    <i class="fas fa-percentage"></i>
+                                </div>
+                                <div class="widget-card-content">
+                                    <h6 class="widget-card-amount">{{ showAmount($deposit['total_deposit_charge']) }}</h6>
+                                    <p class="widget-card-title">@lang('Deposited Charge')</p>
+                                </div>
+                            </div>
+                            <span class="widget-card-arrow">
+                                <i class="las la-angle-right"></i>
+                            </span>
+                        </div>
+
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-xl-6 mb-30">
-            <div class="row mb-none-30">
-                <div class="col-lg-6 col-sm-6 mb-30">
-                    <div class="widget-three box--shadow2 b-radius--5 bg--success text-white">
-                        <div class="widget-three__content">
-                            <h2 class="numbers text-white">{{showAmount($payment['total_deposit_amount'])}} {{$general->cur_text}}</h2>
-                            <p class="text--small">@lang('Total Deposit')</p>
-                            <h2 class="numbers text-white"><br>{{showAmount($payment['total_deposit_charge'])}} {{$general->cur_text}}</h2>
-                            <p class="text--small">@lang('Total Deposit Charge')</p>
+        <div class="col-xxl-6">
+            <div class="card box-shadow3 h-100">
+                <div class="card-body">
+                    <h5 class="card-title">@lang('Withdrawals')</h5>
+                    <div class="widget-card-wrapper">
+                        <div class="widget-card bg--success">
+                            <a href="{{ route('admin.withdraw.data.all') }}" class="widget-card-link"></a>
+                            <div class="widget-card-left">
+                                <div class="widget-card-icon">
+                                    <i class="lar la-credit-card"></i>
+                                </div>
+                                <div class="widget-card-content">
+                                    <h6 class="widget-card-amount">{{ showAmount($withdrawals['total_withdraw_amount']) }}</h6>
+                                    <p class="widget-card-title">@lang('Total Withdrawn')</p>
+                                </div>
+                            </div>
+                            <span class="widget-card-arrow">
+                                <i class="las la-angle-right"></i>
+                            </span>
                         </div>
-                    </div>
-                </div>
-                
-                <div class="col-lg-6 col-sm-6 mb-30">
-                    <div class="widget-three box--shadow2 b-radius--5 bg--danger text-white">
-                        <div class="widget-three__content">
-                            <h2 class="numbers text-white">{{showAmount($paymentWithdraw['total_withdraw_amount'])}} {{$general->cur_text}}</h2>
-                            <p class="text--small">@lang('Total Withdraw')</p>
-                            <h2 class="numbers text-white"><br>{{showAmount($paymentWithdraw['total_withdraw_charge'])}}{{$general->cur_text}}</h2>
-                            <p class="text--small">@lang('Total Withdraw Charge')</p>
+
+                        <div class="widget-card bg--warning">
+                            <a href="{{ route('admin.withdraw.data.pending') }}" class="widget-card-link"></a>
+                            <div class="widget-card-left">
+                                <div class="widget-card-icon">
+                                    <i class="fas fa-spinner"></i>
+                                </div>
+                                <div class="widget-card-content">
+                                    <h6 class="widget-card-amount">{{ $withdrawals['total_withdraw_pending'] }}</h6>
+                                    <p class="widget-card-title">@lang('Pending Withdrawals')</p>
+                                </div>
+                            </div>
+                            <span class="widget-card-arrow">
+                                <i class="las la-angle-right"></i>
+                            </span>
                         </div>
-                    </div>
-                </div>
 
-
-                <div class="col-lg-6 col-sm-6 mb-30">
-                    <div class="widget-three box--shadow2 b-radius--5 bg--white">
-                        <div class="widget-three__icon b-radius--rounded bg--primary  box--shadow2">
-                            <i class="las la-cloud-download-alt"></i>
+                        <div class="widget-card bg--danger">
+                            <a href="{{ route('admin.withdraw.data.rejected') }}" class="widget-card-link"></a>
+                            <div class="widget-card-left">
+                                <div class="widget-card-icon">
+                                    <i class="las la-times-circle"></i>
+                                </div>
+                                <div class="widget-card-content">
+                                    <h6 class="widget-card-amount">{{ $withdrawals['total_withdraw_rejected'] }}</h6>
+                                    <p class="widget-card-title">@lang('Rejected Withdrawals')</p>
+                                </div>
+                            </div>
+                            <span class="widget-card-arrow">
+                                <i class="las la-angle-right"></i>
+                            </span>
                         </div>
-                        <div class="widget-three__content">
-                            <h2 class="numbers">{{$payment['total_deposit_pending']}}</h2>
-                            <p class="text--small">@lang('Pending Deposit')</p>
+
+                        <div class="widget-card bg--primary">
+                            <a href="{{ route('admin.withdraw.data.all') }}" class="widget-card-link"></a>
+                            <div class="widget-card-left">
+                                <div class="widget-card-icon">
+                                    <i class="las la-percent"></i>
+                                </div>
+                                <div class="widget-card-content">
+                                    <h6 class="widget-card-amount">{{ showAmount($withdrawals['total_withdraw_charge']) }}</h6>
+                                    <p class="widget-card-title">@lang('Withdrawal Charge')</p>
+                                </div>
+                            </div>
+                            <span class="widget-card-arrow">
+                                <i class="las la-angle-right"></i>
+                            </span>
                         </div>
-                    </div><!-- widget-two end -->
-                </div>
-                <div class="col-lg-6 col-sm-6 mb-30">
-                    <div class="widget-three box--shadow2 b-radius--5 bg--white">
-                        <div class="widget-three__icon b-radius--rounded bg--warning  box--shadow2">
-                            <i class="las la-file-export"></i>
-                        </div>
-                        <div class="widget-three__content">
-                            <h2 class="numbers">{{$paymentWithdraw['total_withdraw_pending']}}</h2>
-                            <p class="text--small">@lang('Pending Withdrawals')</p>
-                        </div>
-                    </div><!-- widget-two end -->
-                </div>
-            </div>
-        </div>
-    </div><!-- row end -->
 
-
-    <div class="row mt-50 mb-none-30">
-        <div class="col-xl-3 col-lg-6 col-sm-6 mb-30">
-            <div class="dashboard-w1 bg--19 b-radius--10 box-shadow" >
-                <div class="icon">
-                    <i class="fa fa-wallet"></i>
-                </div>
-                <div class="details">
-                    <div class="numbers">
-                        <span class="amount">1000</span>
                     </div>
-                    <div class="desciption">
-                        <span>@lang('Demo Data')</span>
-                    </div>
-                    <a href="#" class="btn btn-sm text--small bg--white text--black box--shadow3 mt-3">@lang('View All')</a>
-                </div>
-            </div>
-        </div>
-
-
-        <div class="col-xl-3 col-lg-6 col-sm-6 mb-30">
-            <div class="dashboard-w1 bg--3 b-radius--10 box-shadow" >
-                <div class="icon">
-                    <i class="fa fa-hand-holding-usd"></i>
-                </div>
-                <div class="details">
-                    <div class="numbers">
-                        <span class="amount">1000</span>
-                        <span class="currency-sign">{{__($general->cur_text)}}</span>
-                    </div>
-                    <div class="desciption">
-                        <span>@lang('Demo Data')</span>
-                    </div>
-                    <a href="#" class="btn btn-sm text--small bg--white text--black box--shadow3 mt-3">@lang('View All')</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-lg-6 col-sm-6 mb-30">
-            <div class="dashboard-w1 bg--12 b-radius--10 box-shadow" >
-                <div class="icon">
-                    <i class="fa fa-money-bill-alt"></i>
-                </div>
-                <div class="details">
-                    <div class="numbers">
-                        <span class="amount">10000</span>
-                        <span class="currency-sign">{{__($general->cur_text)}}</span>
-                    </div>
-                    <div class="desciption">
-                        <span>@lang('Demo Data')</span>
-                    </div>
-
-                    <a href="#" class="btn btn-sm text--small bg--white text--black box--shadow3 mt-3">@lang('View All')</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-lg-6 col-sm-6 mb-30">
-            <div class="dashboard-w1 bg--6 b-radius--10 box-shadow">
-                <div class="icon">
-                    <i class="fa fa-spinner"></i>
-                </div>
-                <div class="details">
-                    <div class="numbers">
-                        <span class="amount">5156</span>
-                    </div>
-                    <div class="desciption">
-                        <span>@lang('Demo Data')</span>
-                    </div>
-
-                    <a href="#" class="btn btn-sm text--small bg--white text--black box--shadow3 mt-3">@lang('View All')</a>
                 </div>
             </div>
         </div>
     </div>
 
 
-    <div class="row mb-none-30 mt-5">
-        <div class="col-xl-6 mb-30">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">@lang('Last 30 days Deposit History')</h5>
-                    <div id="deposit-line"></div>
-                </div>
-            </div>
-        </div>
 
+    <div class="row gy-4 mt-2">
+        <div class="col-xxl-3 col-sm-6">
+            <x-widget
+                      value="{{ showAmount($widget['total_ads']) }}" title="Total Ads" style="6" link="{{ route('admin.ptc.index') }}" icon="las la-ad" bg="primary"  outline="true" />
+        </div><!-- dashboard-w1 end -->
+        <div class="col-xxl-3 col-sm-6">
+            <x-widget
+                      value="{{ showAmount($widget['total_view']) }}" title="Viewed Ads" style="6" link="{{ route('admin.report.ptcview') }}" icon="las la-hand-pointer" bg="1"  outline="true" />
+        </div><!-- dashboard-w1 end -->
+        <div class="col-xxl-3 col-sm-6">
+            <x-widget
+                      value="{{ showAmount($widget['referral_commissions']) }}" title="Referral Commissions" style="6" link="{{ route('admin.report.commissions') }}" icon="las la-link" bg="14"  outline="true" />
+        </div><!-- dashboard-w1 end -->
+        <div class="col-xxl-3 col-sm-6">
+            <x-widget
+                      value="{{ showAmount($widget['plan_purchased']) }}" title="Total Plan Purchased" style="6" link="{{ route('admin.report.transaction') }}?remark=subscribe_plan" icon="las la-list" bg="19"  outline="true" />
+        </div><!-- dashboard-w1 end -->
+    </div><!-- row end-->
+
+
+
+
+    <div class="row mb-none-30 mt-30">
         <div class="col-xl-6 mb-30">
             <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">@lang('Last 30 days Withdraw History')</h5>
-                    <div id="withdraw-line"></div>
+              <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between">
+                    <h5 class="card-title">@lang('Deposit & Withdraw Report')</h5>
+                    <div id="dwDatePicker" class="border p-1 cursor-pointer rounded">
+                        <i class="la la-calendar"></i>&nbsp;
+                        <span></span> <i class="la la-caret-down"></i>
+                    </div>
                 </div>
+                <div id="dwChartArea"> </div>
+              </div>
+            </div>
+          </div>
+        <div class="col-xl-6 mb-30">
+            <div class="card">
+              <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between">
+                    <h5 class="card-title">@lang('Transactions Report')</h5>
+
+                    <div id="trxDatePicker" class="border p-1 cursor-pointer rounded">
+                        <i class="la la-calendar"></i>&nbsp;
+                        <span></span> <i class="la la-caret-down"></i>
+                    </div>
+                </div>
+
+                <div id="transactionChartArea"></div>
+              </div>
             </div>
         </div>
     </div>
@@ -266,7 +258,7 @@
         <div class="col-xl-4 col-lg-6 mb-30">
             <div class="card overflow-hidden">
                 <div class="card-body">
-                    <h5 class="card-title">@lang('Login By Browser')</h5>
+                    <h5 class="card-title">@lang('Login By Browser') (@lang('Last 30 days'))</h5>
                     <canvas id="userBrowserChart"></canvas>
                 </div>
             </div>
@@ -274,7 +266,7 @@
         <div class="col-xl-4 col-lg-6 mb-30">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@lang('Login By OS')</h5>
+                    <h5 class="card-title">@lang('Login By OS') (@lang('Last 30 days'))</h5>
                     <canvas id="userOsChart"></canvas>
                 </div>
             </div>
@@ -282,428 +274,175 @@
         <div class="col-xl-4 col-lg-6 mb-30">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@lang('Login By Country')</h5>
+                    <h5 class="card-title">@lang('Login By Country') (@lang('Last 30 days'))</h5>
                     <canvas id="userCountryChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
+
+
+
 @endsection
 
+
+@push('script-lib')
+    <script src="{{ asset('assets/admin/js/vendor/apexcharts.min.js') }}"></script>
+    <script src="{{ asset('assets/admin/js/vendor/chart.js.2.8.0.js') }}"></script>
+    <script src="{{ asset('assets/admin/js/moment.min.js') }}"></script>
+    <script src="{{ asset('assets/admin/js/daterangepicker.min.js') }}"></script>
+    <script src="{{ asset('assets/admin/js/charts.js') }}"></script>
+@endpush
+
+
+@push('style-lib')
+    <link rel="stylesheet" type="text/css" href="{{ asset('assets/admin/css/daterangepicker.css') }}">
+@endpush
+
 @push('script')
-
-    <script src="{{asset('assets/admin/js/vendor/apexcharts.min.js')}}"></script>
-    <script src="{{asset('assets/admin/js/vendor/chart.js.2.8.0.js')}}"></script>
-
     <script>
         "use strict";
-        // apex-bar-chart js
-        var options = {
-            series: [{
-                name: 'Total Deposit',
-                data: [
-                  @foreach($months as $month)
-                    {{ getAmount(@$depositsMonth->where('months',$month)->first()->depositAmount) }},
-                  @endforeach
-                ]
-            }, {
-                name: 'Total Withdraw',
-                data: [
-                  @foreach($months as $month)
-                    {{ getAmount(@$withdrawalMonth->where('months',$month)->first()->withdrawAmount) }},
-                  @endforeach
-                ]
-            }],
-            chart: {
-                type: 'bar',
-                height: 400,
-                toolbar: {
-                    show: false
-                }
-            },
-            plotOptions: {
-                bar: {
-                    horizontal: false,
-                    columnWidth: '50%',
-                    endingShape: 'rounded'
-                },
-            },
-            dataLabels: {
-                enabled: false
-            },
-            stroke: {
-                show: true,
-                width: 2,
-                colors: ['transparent']
-            },
-            xaxis: {
-                categories: @json($months),
-            },
-            yaxis: {
-                title: {
-                    text: "{{__($general->cur_sym)}}",
-                    style: {
-                        color: '#7c97bb'
-                    }
-                }
-            },
-            grid: {
-                xaxis: {
-                    lines: {
-                        show: false
-                    }
-                },
-                yaxis: {
-                    lines: {
-                        show: false
-                    }
-                },
-            },
-            fill: {
-                opacity: 1
-            },
-            tooltip: {
-                y: {
-                    formatter: function (val) {
-                        return "{{__($general->cur_sym)}}" + val + " "
-                    }
-                }
-            }
-        };
 
-        var chart = new ApexCharts(document.querySelector("#apex-bar-chart"), options);
-        chart.render();
+        const start = moment().subtract(14, 'days');
+        const end = moment();
 
+        const dateRangeOptions = {
+            startDate: start,
+            endDate: end,
+            ranges: {
+                'Today': [moment(), moment()],
+                'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+                'Last 15 Days': [moment().subtract(14, 'days'), moment()],
+                'Last 30 Days': [moment().subtract(30, 'days'), moment()],
+                'This Month': [moment().startOf('month'), moment().endOf('month')],
+                'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')],
+                'Last 6 Months': [moment().subtract(6, 'months').startOf('month'), moment().endOf('month')],
+                'This Year': [moment().startOf('year'), moment().endOf('year')],
+            },
+            maxDate: moment()
+        }
 
-        // apex-line chart
-        var options = {
-            chart: {
-                height: 430,
-                type: "area",
-                toolbar: {
-                    show: false
+        const changeDatePickerText = (element, startDate, endDate) => {
+            $(element).html(startDate.format('MMMM D, YYYY') + ' - ' + endDate.format('MMMM D, YYYY'));
+        }
+
+        let dwChart = barChart(
+            document.querySelector("#dwChartArea"),
+            @json(__(gs('cur_text'))),
+            [{
+                    name: 'Deposited',
+                    data: []
                 },
-                dropShadow: {
-                    enabled: true,
-                    enabledSeries: [0],
-                    top: -2,
-                    left: 0,
-                    blur: 10,
-                    opacity: 0.08
-                },
-                animations: {
-                    enabled: true,
-                    easing: 'linear',
-                    dynamicAnimation: {
-                        speed: 1000
-                    }
-                },
-            },
-            dataLabels: {
-                enabled: false
-            },
-            series: [
                 {
-                    name: "Series 1",
-                    data: @json($withdrawals['per_day_amount']->flatten())
+                    name: 'Withdrawn',
+                    data: []
                 }
             ],
-            fill: {
-                type: "gradient",
-                gradient: {
-                    shadeIntensity: 1,
-                    opacityFrom: 0.7,
-                    opacityTo: 0.9,
-                    stops: [0, 90, 100]
+            [],
+        );
+
+        let trxChart = lineChart(
+            document.querySelector("#transactionChartArea"),
+            [{
+                    name: "Plus Transactions",
+                    data: []
+                },
+                {
+                    name: "Minus Transactions",
+                    data: []
                 }
-            },
-            xaxis: {
-                categories: @json($withdrawals['per_day']->flatten())
-            },
-            grid: {
-                padding: {
-                    left: 5,
-                    right: 5
-                },
-                xaxis: {
-                    lines: {
-                        show: false
-                    }
-                },
-                yaxis: {
-                    lines: {
-                        show: false
-                    }
-                },
-            },
-        };
-
-        var chart = new ApexCharts(document.querySelector("#withdraw-line"), options);
-
-        chart.render();
+            ],
+            []
+        );
 
 
+        const depositWithdrawChart = (startDate, endDate) => {
 
-
-         // apex-line chart
-            var options = {
-                chart: {
-                    height: 430,
-                    type: "area",
-                    toolbar: {
-                        show: false
-                    },
-                    dropShadow: {
-                        enabled: true,
-                        enabledSeries: [0],
-                        top: -2,
-                        left: 0,
-                        blur: 10,
-                        opacity: 0.08
-                    },
-                    animations: {
-                        enabled: true,
-                        easing: 'linear',
-                        dynamicAnimation: {
-                            speed: 1000
-                        }
-                    },
-                },
-                 colors: ['#00E396', '#0090FF'],
-                dataLabels: {
-                    enabled: false
-                },
-                series: [
-                    {
-                        name: "Series 1",
-                        data: @json($deposits['per_day_amount']->flatten())
-                    }
-                ],
-                fill: {
-                    type: "gradient",
-                    gradient: {
-                        shadeIntensity: 1,
-                        opacityFrom: 0.7,
-                        opacityTo: 0.9,
-                        stops: [0, 90, 100]
-                    }
-                },
-                xaxis: {
-                    categories: @json($deposits['per_day']->flatten())
-                },
-                grid: {
-                    padding: {
-                        left: 5,
-                        right: 5
-                    },
-                    xaxis: {
-                        lines: {
-                            show: false
-                        }
-                    },
-                    yaxis: {
-                        lines: {
-                            show: false
-                        }
-                    },
-                },
-            };
-
-            var chart = new ApexCharts(document.querySelector("#deposit-line"), options);
-
-            chart.render();
-
-
-        var ctx = document.getElementById('userBrowserChart');
-        var myChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: @json($chart['user_browser_counter']->keys()),
-                datasets: [{
-                    data: {{ $chart['user_browser_counter']->flatten() }},
-                    backgroundColor: [
-                        '#ff7675',
-                        '#6c5ce7',
-                        '#ffa62b',
-                        '#ffeaa7',
-                        '#D980FA',
-                        '#fccbcb',
-                        '#45aaf2',
-                        '#05dfd7',
-                        '#FF00F6',
-                        '#1e90ff',
-                        '#2ed573',
-                        '#eccc68',
-                        '#ff5200',
-                        '#cd84f1',
-                        '#7efff5',
-                        '#7158e2',
-                        '#fff200',
-                        '#ff9ff3',
-                        '#08ffc8',
-                        '#3742fa',
-                        '#1089ff',
-                        '#70FF61',
-                        '#bf9fee',
-                        '#574b90'
-                    ],
-                    borderColor: [
-                        'rgba(231, 80, 90, 0.75)'
-                    ],
-                    borderWidth: 0,
-
-                }]
-            },
-            options: {
-                aspectRatio: 1,
-                responsive: true,
-                maintainAspectRatio: true,
-                elements: {
-                    line: {
-                        tension: 0 // disables bezier curves
-                    }
-                },
-                scales: {
-                    xAxes: [{
-                        display: false
-                    }],
-                    yAxes: [{
-                        display: false
-                    }]
-                },
-                legend: {
-                    display: false,
-                }
+            const data = {
+                start_date: startDate.format('YYYY-MM-DD'),
+                end_date: endDate.format('YYYY-MM-DD')
             }
-        });
 
+            const url = @json(route('admin.chart.deposit.withdraw'));
 
-
-        var ctx = document.getElementById('userOsChart');
-        var myChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: @json($chart['user_os_counter']->keys()),
-                datasets: [{
-                    data: {{ $chart['user_os_counter']->flatten() }},
-                    backgroundColor: [
-                        '#ff7675',
-                        '#6c5ce7',
-                        '#ffa62b',
-                        '#ffeaa7',
-                        '#D980FA',
-                        '#fccbcb',
-                        '#45aaf2',
-                        '#05dfd7',
-                        '#FF00F6',
-                        '#1e90ff',
-                        '#2ed573',
-                        '#eccc68',
-                        '#ff5200',
-                        '#cd84f1',
-                        '#7efff5',
-                        '#7158e2',
-                        '#fff200',
-                        '#ff9ff3',
-                        '#08ffc8',
-                        '#3742fa',
-                        '#1089ff',
-                        '#70FF61',
-                        '#bf9fee',
-                        '#574b90'
-                    ],
-                    borderColor: [
-                        'rgba(0, 0, 0, 0.05)'
-                    ],
-                    borderWidth: 0,
-
-                }]
-            },
-            options: {
-                aspectRatio: 1,
-                responsive: true,
-                elements: {
-                    line: {
-                        tension: 0 // disables bezier curves
+            $.get(url, data,
+                function(data, status) {
+                    if (status == 'success') {
+                        dwChart.updateSeries(data.data);
+                        dwChart.updateOptions({
+                            xaxis: {
+                                categories: data.created_on,
+                            }
+                        });
                     }
-                },
-                scales: {
-                    xAxes: [{
-                        display: false
-                    }],
-                    yAxes: [{
-                        display: false
-                    }]
-                },
-                legend: {
-                    display: false,
                 }
-            },
-        });
+            );
+        }
 
+        const transactionChart = (startDate, endDate) => {
 
-        // Donut chart
-        var ctx = document.getElementById('userCountryChart');
-        var myChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: @json($chart['user_country_counter']->keys()),
-                datasets: [{
-                    data: {{ $chart['user_country_counter']->flatten() }},
-                    backgroundColor: [
-                        '#ff7675',
-                        '#6c5ce7',
-                        '#ffa62b',
-                        '#ffeaa7',
-                        '#D980FA',
-                        '#fccbcb',
-                        '#45aaf2',
-                        '#05dfd7',
-                        '#FF00F6',
-                        '#1e90ff',
-                        '#2ed573',
-                        '#eccc68',
-                        '#ff5200',
-                        '#cd84f1',
-                        '#7efff5',
-                        '#7158e2',
-                        '#fff200',
-                        '#ff9ff3',
-                        '#08ffc8',
-                        '#3742fa',
-                        '#1089ff',
-                        '#70FF61',
-                        '#bf9fee',
-                        '#574b90'
-                    ],
-                    borderColor: [
-                        'rgba(231, 80, 90, 0.75)'
-                    ],
-                    borderWidth: 0,
-
-                }]
-            },
-            options: {
-                aspectRatio: 1,
-                responsive: true,
-                elements: {
-                    line: {
-                        tension: 0 // disables bezier curves
-                    }
-                },
-                scales: {
-                    xAxes: [{
-                        display: false
-                    }],
-                    yAxes: [{
-                        display: false
-                    }]
-                },
-                legend: {
-                    display: false,
-                }
+            const data = {
+                start_date: startDate.format('YYYY-MM-DD'),
+                end_date: endDate.format('YYYY-MM-DD')
             }
-        });
-        
+
+            const url = @json(route('admin.chart.transaction'));
+
+
+            $.get(url, data,
+                function(data, status) {
+                    if (status == 'success') {
+
+
+                        trxChart.updateSeries(data.data);
+                        trxChart.updateOptions({
+                            xaxis: {
+                                categories: data.created_on,
+                            }
+                        });
+                    }
+                }
+            );
+        }
+
+
+
+        $('#dwDatePicker').daterangepicker(dateRangeOptions, (start, end) => changeDatePickerText('#dwDatePicker span', start, end));
+        $('#trxDatePicker').daterangepicker(dateRangeOptions, (start, end) => changeDatePickerText('#trxDatePicker span', start, end));
+
+        changeDatePickerText('#dwDatePicker span', start, end);
+        changeDatePickerText('#trxDatePicker span', start, end);
+
+        depositWithdrawChart(start, end);
+        transactionChart(start, end);
+
+        $('#dwDatePicker').on('apply.daterangepicker', (event, picker) => depositWithdrawChart(picker.startDate, picker.endDate));
+        $('#trxDatePicker').on('apply.daterangepicker', (event, picker) => transactionChart(picker.startDate, picker.endDate));
+
+        piChart(
+            document.getElementById('userBrowserChart'),
+            @json(@$chart['user_browser_counter']->keys()),
+            @json(@$chart['user_browser_counter']->flatten())
+        );
+
+        piChart(
+            document.getElementById('userOsChart'),
+            @json(@$chart['user_os_counter']->keys()),
+            @json(@$chart['user_os_counter']->flatten())
+        );
+
+        piChart(
+            document.getElementById('userCountryChart'),
+            @json(@$chart['user_country_counter']->keys()),
+            @json(@$chart['user_country_counter']->flatten())
+        );
     </script>
+@endpush
+@push('style')
+    <style>
+        .apexcharts-menu {
+            min-width: 120px !important;
+        }
+    </style>
 @endpush

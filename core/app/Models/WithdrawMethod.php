@@ -2,14 +2,19 @@
 
 namespace App\Models;
 
+use App\Traits\GlobalStatus;
 use Illuminate\Database\Eloquent\Model;
 
 class WithdrawMethod extends Model
 {
-    protected $guarded = ['id'];
-    protected $table = "withdraw_methods";
+    use GlobalStatus;
 
     protected $casts = [
         'user_data' => 'object',
     ];
+
+    public function form()
+    {
+        return $this->belongsTo(Form::class);
+    }
 }

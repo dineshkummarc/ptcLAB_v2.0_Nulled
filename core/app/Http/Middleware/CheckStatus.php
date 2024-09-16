@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Auth;
+
 class CheckStatus
 {
     /**
@@ -20,7 +21,19 @@ class CheckStatus
             if ($user->status  && $user->ev  && $user->sv  && $user->tv) {
                 return $next($request);
             } else {
-                return redirect()->route('user.authorization');
+                if ($request->is('api/*')) {
+                    $notify[] = 'You need to verify your account first.';
+                    return response()->json([
+                        'remark'=>'unverified',
+                        'status'=>'error',
+                        'message'=>['error'=>$notify],
+                        'data'=>[
+                            'user'=>$user
+                        ],
+                    ]);
+                }else{
+                    return to_route('user.authorization');
+                }
             }
         }
         abort(403);

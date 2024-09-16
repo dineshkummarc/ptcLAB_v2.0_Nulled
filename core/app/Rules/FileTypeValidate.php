@@ -37,6 +37,6 @@ class FileTypeValidate implements Rule
      */
     public function message()
     {
-        return ':attribute file type is not supported.';
+        return 'The :attribute file type is not supported.';
     }
 }

@@ -1,37 +1,61 @@
-<link rel="stylesheet" href="{{ asset('assets/global/css/iziToast.min.css') }}">
+<link href="{{ asset('assets/global/css/iziToast.min.css') }}" rel="stylesheet">
+<link href="{{ asset('assets/global/css/iziToast_custom.css') }}" rel="stylesheet">
 <script src="{{ asset('assets/global/js/iziToast.min.js') }}"></script>
-@if(session()->has('notify'))
-    @foreach(session('notify') as $msg)
-        <script> 
-            "use strict";
-            iziToast.{{ $msg[0] }}({message:"{{ __($msg[1]) }}", position: "topRight"}); 
-        </script>
-    @endforeach
-@endif
 
-@if ($errors->any())
-    @php
-        $collection = collect($errors->all());
-        $errors = $collection->unique();
-    @endphp
-
-    <script>
-        "use strict";
-        @foreach ($errors as $error)
-        iziToast.error({
-            message: '{{ __($error) }}',
-            position: "topRight"
-        });
-        @endforeach
-    </script>
-
-@endif
 <script>
     "use strict";
-    function notify(status,message) {
+    const colors = {
+        success: '#28c76f',
+        error: '#eb2222',
+        warning: '#ff9f43',
+        info: '#1e9ff2',
+    }
+
+    const icons = {
+        success: 'fas fa-check-circle',
+        error: 'fas fa-times-circle',
+        warning: 'fas fa-exclamation-triangle',
+        info: 'fas fa-exclamation-circle',
+    }
+
+    const notifications = @json(session('notify', []));
+    const errors = @json(@$errors ? collect($errors->all())->unique() : []);
+
+
+    const triggerToaster = (status, message) => {
         iziToast[status]({
+            title: status.charAt(0).toUpperCase() + status.slice(1),
             message: message,
-            position: "topRight"
+            position: "topRight",
+            backgroundColor: '#fff',
+            icon: icons[status],
+            iconColor: colors[status],
+            progressBarColor: colors[status],
+            titleSize: '1rem',
+            messageSize: '1rem',
+            titleColor: '#474747',
+            messageColor: '#a2a2a2',
+            transitionIn: 'obunceInLeft'
         });
+    }
+
+    if (notifications.length) {
+        notifications.forEach(element => {
+            triggerToaster(element[0], element[1]);
+        });
+    }
+
+    if (errors.length) {
+        errors.forEach(error => {
+            triggerToaster('error', error);
+        });
+    }
+
+    function notify(status, message) {
+        if (typeof message == 'string') {
+            triggerToaster(status, message);
+        } else {
+            $.each(message, (i, val) => triggerToaster(status, val));
+        }
     }
 </script>

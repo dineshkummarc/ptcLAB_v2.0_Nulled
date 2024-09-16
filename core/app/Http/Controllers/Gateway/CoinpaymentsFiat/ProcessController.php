@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Gateway\CoinpaymentsFiat;
 
+use App\Constants\Status;
 use App\Models\Deposit;
-use App\Models\GeneralSetting;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Gateway\PaymentController;
 use Illuminate\Http\Request;
@@ -16,22 +16,21 @@ class ProcessController extends Controller
 
     public static function process($deposit)
     {
-        $basic =  GeneralSetting::first();
         $coinpayAcc = json_decode($deposit->gatewayCurrency()->gateway_parameter);
 
         $val['merchant'] = $coinpayAcc->merchant_id;
-        $val['item_name'] = 'Payment to ' . $basic->sitename;
+        $val['item_name'] = 'Payment to ' . gs('site_name');
         $val['currency'] = $deposit->method_currency;
         $val['currency_code'] = "$deposit->method_currency";
-        $val['amountf'] = round($deposit->final_amo,2);
+        $val['amountf'] = round($deposit->final_amount,2);
         $val['ipn_url'] =  route('ipn.'.$deposit->gateway->alias);
         $val['custom'] = "$deposit->trx";
-        $val['amount'] = round($deposit->final_amo,2);
-        $val['return'] = route(gatewayRedirectUrl(true));
-        $val['cancel_return'] = route(gatewayRedirectUrl());
+        $val['amount'] = round($deposit->final_amount,2);
+        $val['return'] = route('home').$deposit->success_url;
+        $val['cancel_return'] = route('home').$deposit->failed_url;
         $val['notify_url'] = route('ipn.'.$deposit->gateway->alias);
-        $val['success_url'] = route(gatewayRedirectUrl(true));
-        $val['cancel_url'] = route(gatewayRedirectUrl());
+        $val['success_url'] = route('home').$deposit->success_url;
+        $val['cancel_url'] = route('home').$deposit->failed_url;
         $val['custom'] = $deposit->trx;
         $val['cmd'] = '_pay_simple';
         $val['want_shipping'] = 0;
@@ -53,8 +52,8 @@ class ProcessController extends Controller
 
         if ($status >= 100 || $status == 2) {
             $coinPayAcc = json_decode($deposit->gatewayCurrency()->gateway_parameter);
-            if ($deposit->method_currency == $request->currency1 && round($deposit->final_amo,2) <= $amount1  && $coinPayAcc->merchant_id == $request->merchant && $deposit->status == '0') {
-                PaymentController::userDataUpdate($deposit->trx);
+            if ($deposit->method_currency == $request->currency1 && round($deposit->final_amount,2) <= $amount1  && $coinPayAcc->merchant_id == $request->merchant && $deposit->status == Status::PAYMENT_INITIATE) {
+                PaymentController::userDataUpdate($deposit);
             }
         }
     }

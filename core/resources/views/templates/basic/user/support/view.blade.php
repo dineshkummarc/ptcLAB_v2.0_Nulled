@@ -1,230 +1,145 @@
-@extends($activeTemplate .'layouts.user')
+@extends($activeTemplate.'layouts.'.$layout)
 @section('content')
-@include($activeTemplate.'breadcrumb')
-<section class="cmn-section">
+<div class="cmn-section">
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-12">
-
-
-                <div class="card">
+                <div class="card custom--card">
                     <div class="card-header card-header-bg d-flex flex-wrap justify-content-between align-items-center">
-                        <h5 class="card-title mt-0">
-                            @if($my_ticket->status == 0)
-                                <span class="badge badge-success py-2 px-3">@lang('Open')</span>
-                            @elseif($my_ticket->status == 1)
-                                <span class="badge badge-primary py-2 px-3">@lang('Answered')</span>
-                            @elseif($my_ticket->status == 2)
-                                <span class="badge badge-warning py-2 px-3">@lang('Replied')</span>
-                            @elseif($my_ticket->status == 3)
-                                <span class="badge badge-dark py-2 px-3">@lang('Closed')</span>
-                            @endif
-                            [Ticket#{{ $my_ticket->ticket }}] {{ $my_ticket->subject }}
+                        <h5 class="text-white mt-0">
+                            @php echo $myTicket->statusBadge; @endphp
+                            [@lang('Ticket')#{{ $myTicket->ticket }}] {{ $myTicket->subject }}
                         </h5>
-
-                        <button class="btn btn-danger close-button" type="button" title="@lang('Close Ticket')"
-                                data-toggle="modal"
-                                data-target="#DelModal"><i class="fa fa-lg fa-times-circle"></i>
-
+                        @if($myTicket->status != Status::TICKET_CLOSE && $myTicket->user)
+                        <button class="btn btn-danger close-button btn-sm confirmationBtn" type="button" data-question="@lang('Are you sure to close this ticket?')" data-action="{{ route('ticket.close', $myTicket->id) }}"><i class="fas fa-lg fa-times-circle"></i>
                         </button>
-
+                        @endif
                     </div>
-
                     <div class="card-body">
-                        @if($my_ticket->status != 4)
-                        <form method="post"
-                              action="{{ route('ticket.reply', $my_ticket->id) }}"
-                              enctype="multipart/form-data">
+                        <form method="post" class="disableSubmission" action="{{ route('ticket.reply', $myTicket->id) }}" enctype="multipart/form-data">
                             @csrf
-                            @method('PUT')
                             <div class="row justify-content-between">
                                 <div class="col-md-12">
                                     <div class="form-group">
-                                                        <textarea name="message"
-                                                                  class="form-control form-control-lg"
-                                                                  id="inputMessage"
-                                                                  placeholder="@lang('Your Reply') ..."
-                                                                  rows="4" cols="10"></textarea>
+                                        <textarea name="message" class="form-control form--control" rows="4" required>{{ old('message') }}</textarea>
                                     </div>
-
-
                                 </div>
 
-                            </div>
-
-                            <div class="row justify-content-between">
-
-                                <div class="col-md-12">
-                                    <div class="row justify-content-between">
-                                        <div class="col-md-9">
-
-                                            <div class="form-group">
-                                                <label for="inputAttachments">@lang('Attachments')</label>
-                                                <input type="file"
-                                                       name="attachments[]"
-                                                       id="inputAttachments"
-                                                       class="form-control"/>
-                                                <div id="fileUploadsContainer"></div>
-                                                <p class="my-2 ticket-attachments-message text-muted">
-                                                    @lang("Allowed File Extensions: .jpg, .jpeg, .png, .pdf")
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3 mt-3">
-                                            <div class="form-group">
-                                                <a href="javascript:void(0)"
-                                                   class="btn cmn-btn mt-4 extraTicketAttachment">
-                                                    <i class="fa fa-plus"></i>
-                                                </a>
-                                            </div>
-                                        </div>
+                                <div class="col-md-9">
+                                    <button type="button" class="btn btn--base btn-sm addAttachment my-2"> <i class="fas fa-plus"></i> @lang('Add Attachment') </button>
+                                    <p class="mb-2"><span class="text--info">@lang('Max 5 files can be uploaded | Maximum upload size is '.convertToReadableSize(ini_get('upload_max_filesize')) .' | Allowed File Extensions: .jpg, .jpeg, .png, .pdf, .doc, .docx')</span></p>
+                                    <div class="row fileUploadsContainer">
                                     </div>
-
-
                                 </div>
-
-                                <div class="col-md-12">
-                                    <button type="submit"
-                                            class="btn cmn-btn w-100 mt-4"
-                                            name="replayTicket" value="1">
-                                        <i class="fa fa-reply"></i> @lang('Reply')
+                                <div class="col-md-3">
+                                    <button class="btn btn--base w-100 my-2" type="submit"><i class="la la-fw la-lg la-reply"></i> @lang('Reply')
                                     </button>
                                 </div>
 
                             </div>
                         </form>
-                    @endif
-
-
-                        <div class="row">
-                            <div class="col-md-12">
-
-                                <div class="card mt-4">
-                                    <div class="card-body">
-
-                                        @foreach($messages as $message)
-                                            @if($message->admin_id == 0)
-
-
-
-                                                <div class="row border border-primary border-radius-3 my-3 py-3 mx-2">
-                                                    <div class="col-md-3 border-right text-right">
-                                                        <h5 class="my-3">{{ $message->ticket->name }}</h5>
-                                                    </div>
-
-                                                    <div class="col-md-9">
-                                                        <p class="text-muted font-weight-bold my-3">
-                                                            @lang('Posted on') {{ $message->created_at->format('l, dS F Y @ H:i') }}</p>
-                                                        <p>{{$message->message}}</p>
-                                                        @if($message->attachments()->count() > 0)
-                                                            <div class="mt-2">
-                                                                @foreach($message->attachments as $k=> $image)
-                                                                    <a href="{{route('ticket.download',encrypt($image->id))}}" class="mr-3"><i class="fa fa-file"></i>  @lang('Attachment') {{++$k}} </a>
-                                                                @endforeach
-                                                            </div>
-                                                        @endif
-
-                                                    </div>
-
-                                                </div>
-
-                                            @else
-
-
-                                                <div class="row border border-warning border-radius-3 my-3 py-3 mx-2 staff-reply">
-
-                                                    <div class="col-md-3 border-right text-right">
-                                                        <h5 class="my-3">{{ $message->admin->name }}</h5>
-                                                        <p class="lead text-muted">Staff</p>
-
-                                                    </div>
-
-                                                    <div class="col-md-9">
-                                                        <p class="text-muted font-weight-bold my-3">
-                                                            @lang('Posted on') {{ $message->created_at->format('l, dS F Y @ H:i') }}</p>
-                                                        <p>{{$message->message}}</p>
-
-                                                        @if($message->attachments()->count() > 0)
-                                                            <div class="mt-2">
-                                                                @foreach($message->attachments as $k=> $image)
-                                                                    <a href="{{route('ticket.download',encrypt($image->id))}}" class="mr-3"><i class="fa fa-file"></i>  @lang('Attachment') {{++$k}} </a>
-                                                                @endforeach
-                                                            </div>
-                                                        @endif
-                                                    </div>
-
-                                                </div>
-                                            @endif
-                                        @endforeach
-
-
-
-                                    </div>
-                                </div>
-                            </div>
-
-
-
-                        </div>
-
-
                     </div>
                 </div>
+
+                <div class="card mt-4">
+                    <div class="card-body">
+                        @forelse($messages as $message)
+                            @if($message->admin_id == 0)
+                                <div class="row border border-primary border-radius-3 my-3 py-3 mx-2">
+                                    <div class="col-md-3 border-end text-end">
+                                        <h5 class="my-3">{{ $message->ticket->name }}</h5>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <p class="text-muted fw-bold my-3">
+                                            @lang('Posted on') {{ showDateTime($message->created_at,'l, dS F Y @ h:i a') }}</p>
+                                        <p>{{$message->message}}</p>
+                                        @if($message->attachments->count() > 0)
+                                            <div class="mt-2">
+                                                @foreach($message->attachments as $k=> $image)
+                                                    <a href="{{route('ticket.download',encrypt($image->id))}}" class="me-3"><i class="fa-regular fa-file"></i>  @lang('Attachment') {{++$k}} </a>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            @else
+                                <div class="row border border-warning border-radius-3 my-3 py-3 mx-2 reply-bg">
+                                    <div class="col-md-3 border-end text-end">
+                                        <h5 class="my-3">{{ $message->admin->name }}</h5>
+                                        <p class="lead text-muted">@lang('Staff')</p>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <p class="text-muted fw-bold my-3">
+                                            @lang('Posted on') {{ showDateTime($message->created_at,'l, dS F Y @ h:i a') }}</p>
+                                        <p>{{$message->message}}</p>
+                                        @if($message->attachments->count() > 0)
+                                            <div class="mt-2">
+                                                @foreach($message->attachments as $k=> $image)
+                                                    <a href="{{route('ticket.download',encrypt($image->id))}}" class="me-3"><i class="fa-regular fa-file"></i>  @lang('Attachment') {{++$k}} </a>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
+                        @empty
+                        <div class="empty-message text-center">
+                            <img src="{{ asset('assets/images/empty_list.png') }}" alt="empty">
+                            <h5 class="text-muted">@lang('No replies found here!')</h5>
+                        </div>
+                        @endforelse
+                    </div>
+                </div>
+
             </div>
         </div>
-
-</div>
-</section>
-
-
-
-<div class="modal fade" id="DelModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-
-            <form method="post" action="{{ route('ticket.reply', $my_ticket->id) }}">
-                @csrf
-                @method('PUT')
-
-                <div class="modal-header">
-                    <h5 class="modal-title"> @lang('Confirmation')!</h5>
-
-                    <button type="button" class="close close-button" data-dismiss="modal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <strong class="text-dark">@lang('Are you sure you want to Close This Support Ticket')?</strong>
-                </div>
-                <div class="modal-footer">
-
-                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal"><i class="fa fa-times"></i>
-                        @lang('Close')
-                    </button>
-
-                    <button type="submit" class="btn btn-success btn-sm" name="replayTicket"
-                    value="2"><i class="fa fa-check"></i> @lang("Confirm")
-                </button>
-            </div>
-
-        </form>
-
     </div>
+
 </div>
-</div>
+
+    <x-confirmation-modal />
 @endsection
-@push('script')
-<script type="text/javascript">
-    (function ($) {
-        "use strict";
-        $('.extraTicketAttachment').click(function(){
-                $("#fileUploadsContainer").append('<input type="file" name="attachments[]" class="form-control form-control mt-2" required />')
-            });
-    })(jQuery);
-</script>
-@endpush
 @push('style')
-<style type="text/css">
-    .staff-reply{
-        background-color: #ffd96729;
-    }
-</style>
+    <style>
+        .input-group-text:focus{
+            box-shadow: none !important;
+        }
+        .reply-bg{
+            background-color: #ffd96729
+        }
+        .empty-message img{
+            width: 120px;
+            margin-bottom: 15px;
+        }
+    </style>
+@endpush
+@push('script')
+    <script>
+        (function ($) {
+            "use strict";
+            var fileAdded = 0;
+            $('.addAttachment').on('click',function(){
+                fileAdded++;
+                if (fileAdded == 5) {
+                    $(this).attr('disabled',true)
+                }
+                $(".fileUploadsContainer").append(`
+                    <div class="col-lg-4 col-md-12 removeFileInput">
+                        <div class="form-group">
+                            <div class="input-group">
+                                <input type="file" name="attachments[]" class="form-control" accept=".jpeg,.jpg,.png,.pdf,.doc,.docx" required>
+                                <button type="button" class="input-group-text removeFile bg--danger border--danger"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `)
+            });
+            $(document).on('click','.removeFile',function(){
+                $('.addAttachment').removeAttr('disabled',true)
+                fileAdded--;
+                $(this).closest('.removeFileInput').remove();
+            });
+        })(jQuery);
+
+    </script>
 @endpush

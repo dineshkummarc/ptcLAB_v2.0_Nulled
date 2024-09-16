@@ -5,76 +5,62 @@
 
 
         <div class="col-lg-4 col-md-4 mb-30">
-            <div class="card b-radius--10 overflow-hidden box--shadow1">
+            <div class="card overflow-hidden box--shadow1">
                 <div class="card-body">
                     <h5 class="mb-20 text-muted">@lang('Withdraw Via') {{__(@$withdrawal->method->name)}}</h5>
-
-                    <div class="p-3 bg--white">
-                        <div class="">
-                            <img src="{{$methodImage}}" alt="@lang('Image')" class="b-radius--10 withdraw-detailImage" >
-                        </div>
-                    </div>
-
-                    <ul class="list-group">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center ps-0">
                             @lang('Date')
-                            <span class="font-weight-bold">{{ showDateTime($withdrawal->created_at) }}</span>
+                            <span class="fw-bold">{{ showDateTime($withdrawal->created_at) }}</span>
                         </li>
 
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <li class="list-group-item d-flex justify-content-between align-items-center ps-0">
                             @lang('Trx Number')
-                            <span class="font-weight-bold">{{ $withdrawal->trx }}</span>
+                            <span class="fw-bold">{{ $withdrawal->trx }}</span>
                         </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <li class="list-group-item d-flex justify-content-between align-items-center ps-0">
                             @lang('Username')
-                            <span class="font-weight-bold">
-                                <a href="{{ route('admin.users.detail', $withdrawal->user_id) }}">{{ @$withdrawal->user->username }}</a>
+                            <span class="fw-bold">
+                                <a href="{{ route('admin.users.detail', $withdrawal->user_id) }}"><span>@</span>{{ @$withdrawal->user->username }}</a>
                             </span>
                         </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <li class="list-group-item d-flex justify-content-between align-items-center ps-0">
                             @lang('Method')
-                            <span class="font-weight-bold">{{__($withdrawal->method->name)}}</span>
+                            <span class="fw-bold">{{__($withdrawal->method->name)}}</span>
                         </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <li class="list-group-item d-flex justify-content-between align-items-center ps-0">
                             @lang('Amount')
-                            <span class="font-weight-bold">{{ showAmount($withdrawal->amount ) }} {{ __($general->cur_text) }}</span>
+                            <span class="fw-bold">{{ showAmount($withdrawal->amount ) }}</span>
                         </li>
 
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <li class="list-group-item d-flex justify-content-between align-items-center ps-0">
                             @lang('Charge')
-                            <span class="font-weight-bold">{{ showAmount($withdrawal->charge ) }} {{ __($general->cur_text) }}</span>
+                            <span class="fw-bold">{{ showAmount($withdrawal->charge ) }}</span>
                         </li>
 
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <li class="list-group-item d-flex justify-content-between align-items-center ps-0">
                             @lang('After Charge')
-                            <span class="font-weight-bold">{{ showAmount($withdrawal->after_charge ) }} {{ __($general->cur_text) }}</span>
+                            <span class="fw-bold">{{ showAmount($withdrawal->after_charge ) }}</span>
                         </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <li class="list-group-item d-flex justify-content-between align-items-center ps-0">
                             @lang('Rate')
-                            <span class="font-weight-bold">1 {{__($general->cur_text)}}
-                                = {{ showAmount($withdrawal->rate ) }} {{__($withdrawal->currency)}}</span>
+                            <span class="fw-bold">1 {{__(gs('cur_text'))}}
+                                = {{ showAmount($withdrawal->rate ) }}</span>
                         </li>
 
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <li class="list-group-item d-flex justify-content-between align-items-center ps-0">
                             @lang('Payable')
-                            <span class="font-weight-bold">{{ showAmount($withdrawal->final_amount) }} {{__($withdrawal->currency)}}</span>
+                            <span class="fw-bold">{{ showAmount($withdrawal->final_amount) }}</span>
                         </li>
 
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <li class="list-group-item d-flex justify-content-between align-items-center ps-0">
                             @lang('Status')
-                            @if($withdrawal->status == 2)
-                                <span class="badge badge-pill bg--warning">@lang('Pending')</span>
-                            @elseif($withdrawal->status == 1)
-                                <span class="badge badge-pill bg--success">@lang('Approved')</span>
-                            @elseif($withdrawal->status == 3)
-                                <span class="badge badge-pill bg--danger">@lang('Rejected')</span>
-                            @endif
+                            @php echo $withdrawal->statusBadge @endphp
                         </li>
 
                         @if($withdrawal->admin_feedback)
-                        <li class="list-group-item">
-                            <strong>@lang('Admin Response')</strong>
-                            <br>
+                        <li class="list-group-item d-flex justify-content-between align-items-center ps-0">
+                            @lang('Admin Response')
                            <p>{{$withdrawal->admin_feedback}}</p>
                         </li>
                         @endif
@@ -84,44 +70,42 @@
         </div>
         <div class="col-lg-8 col-md-8 mb-30">
 
-            <div class="card b-radius--10 overflow-hidden box--shadow1">
+            <div class="card overflow-hidden box--shadow1">
                 <div class="card-body">
                     <h5 class="card-title border-bottom pb-2">@lang('User Withdraw Information')</h5>
 
 
                     @if($details != null)
-                        @foreach(\GuzzleHttp\json_decode($details) as $k => $val)
-                            @if($val->type == 'file')
-                                <div class="row mt-4">
-                                    <div class="col-md-8">
-                                        <h6>{{__(inputTitle($k))}}</h6>
-                                        <img src="{{getImage('assets/images/verify/withdraw/'.$val->field_name)}}" alt="@lang('Image')">
-                                    </div>
+                        @foreach(json_decode($details) as $val)
+                            <div class="row mt-4">
+                                <div class="col-md-12">
+                                    <h6>{{__($val->name)}}</h6>
+                                    @if($val->type == 'checkbox')
+                                        {{ implode(',',$val->value) }}
+                                    @elseif($val->type == 'file')
+                                        @if($val->value)
+                                            <a href="{{ route('admin.download.attachment',encrypt(getFilePath('verify').'/'.$val->value)) }}" class="me-3"><i class="fa-regular fa-file"></i>  @lang('Attachment') </a>
+                                        @else
+                                            @lang('No File')
+                                        @endif
+                                    @else
+                                    <p>{{__($val->value)}}</p>
+                                    @endif
                                 </div>
-                            @else
-                                <div class="row mt-4">
-                                    <div class="col-md-12">
-                                        <h6>{{__(inputTitle($k))}}</h6>
-                                        <p>{{$val->field_name}}</p>
-                                    </div>
-                                </div>
-
-                            @endif
+                            </div>
                         @endforeach
                     @endif
 
 
-                    @if($withdrawal->status == 2)
+                    @if($withdrawal->status == Status::PAYMENT_PENDING)
                         <div class="row mt-4">
                             <div class="col-md-12">
-                                <button class="btn btn--success ml-1 approveBtn" data-toggle="tooltip" data-original-title="@lang('Approve')"
-                                        data-id="{{ $withdrawal->id }}" data-amount="{{ showAmount($withdrawal->final_amount) }} {{$withdrawal->currency}}">
-                                    <i class="fas la-check"></i> @lang('Approve')
+                                <button class="btn btn-outline--success btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#approveModal">
+                                    <i class="las la-check"></i> @lang('Approve')
                                 </button>
 
-                                <button class="btn btn--danger ml-1 rejectBtn" data-toggle="tooltip" data-original-title="@lang('Reject')"
-                                        data-id="{{ $withdrawal->id }}" data-amount="{{ showAmount($withdrawal->final_amount) }} {{__($withdrawal->currency)}}">
-                                    <i class="fas fa-ban"></i> @lang('Reject')
+                                <button class="btn btn-outline--danger btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                                    <i class="las la-ban"></i> @lang('Reject')
                                 </button>
                             </div>
                         </div>
@@ -140,21 +124,19 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">@lang('Approve Withdrawal Confirmation')</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="las la-times"></i>
                     </button>
                 </div>
-                <form action="{{ route('admin.withdraw.approve') }}" method="POST">
+                <form action="{{ route('admin.withdraw.data.approve') }}" method="POST">
                     @csrf
-                    <input type="hidden" name="id">
+                    <input type="hidden" name="id" value="{{ $withdrawal->id }}">
                     <div class="modal-body">
-                        <p>@lang('Have you sent') <span class="font-weight-bold withdraw-amount text-success"></span>?</p>
-                        <p class="withdraw-detail"></p>
-                        <textarea name="details" class="form-control pt-3" rows="3" placeholder="@lang('Provide the details. eg: transaction number')" required=""></textarea>
+                        <p>@lang('Have you sent') <span class="fw-bold text--success">{{ showAmount($withdrawal->final_amount,currencyFormat:false) }} {{$withdrawal->currency}}</span>?</p>
+                        <textarea name="details" class="form-control" value="{{ old('details') }}" rows="3" placeholder="@lang('Provide the details. eg: transaction number')" required></textarea>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn--dark" data-dismiss="modal">@lang('Close')</button>
-                        <button type="submit" class="btn btn--success">@lang('Approve')</button>
+                        <button type="submit" class="btn btn--primary w-100 h-45">@lang('Submit')</button>
                     </div>
                 </form>
             </div>
@@ -167,45 +149,24 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">@lang('Reject Withdrawal Confirmation')</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="las la-times"></i>
                     </button>
                 </div>
-                <form action="{{route('admin.withdraw.reject')}}" method="POST">
+                <form action="{{route('admin.withdraw.data.reject')}}" method="POST">
                     @csrf
-                    <input type="hidden" name="id">
+                    <input type="hidden" name="id" value="{{ $withdrawal->id }}">
                     <div class="modal-body">
-                        <strong>@lang('Reason of Rejection')</strong>
-                        <textarea name="details" class="form-control pt-3" rows="3" placeholder="@lang('Provide the Details')" required=""></textarea>
+                        <div class="form-group">
+                            <label>@lang('Reason of Rejection')</label>
+                            <textarea name="details" class="form-control" rows="3" value="{{ old('details') }}" required></textarea>
+                        </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn--dark" data-dismiss="modal">@lang('Close')</button>
-                        <button type="submit" class="btn btn--danger">@lang('Reject')</button>
+                        <button type="submit" class="btn btn--primary w-100 h-45">@lang('Submit')</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 @endsection
-
-@push('script')
-    <script>
-        (function ($) {
-            "use strict";
-            $('.approveBtn').on('click', function() {
-                var modal = $('#approveModal');
-                modal.find('input[name=id]').val($(this).data('id'));
-                modal.find('.withdraw-amount').text($(this).data('amount'));
-                modal.modal('show');
-            });
-
-            $('.rejectBtn').on('click', function() {
-                var modal = $('#rejectModal');
-                modal.find('input[name=id]').val($(this).data('id'));
-                modal.find('.withdraw-amount').text($(this).data('amount'));
-                modal.modal('show');
-            });
-        })(jQuery);
-
-    </script>
-@endpush
