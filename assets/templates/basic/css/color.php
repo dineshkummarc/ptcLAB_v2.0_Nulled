@@ -24,19 +24,11 @@
     }
 ?>
 
-.price .single-price .part-top {
-    background: <?php echo $color1 ?>;
+.ptc-card {
+    border: 1px solid <?php echo $color1 ?>80;
+    background: linear-gradient(to bottom, <?php echo $color1 ?>40, #fff) !important;
 }
 
-.price .single-price .part-top {
-    padding: 26px 30px 30px;
-    background: <?php echo $color1 ?>;
-}
-
-.price .single-price .part-bottom ul li {
-    font-size: 16px;
-    padding: 12px 0;
-}
 
 .price .single-price .part-bottom button:hover {
     background: transparent;
@@ -47,23 +39,27 @@
     color: <?php echo $color1 ?>;
 }
 
-.cmn-btn {
+.btn--base,.cmn-btn {
     background-color: <?php echo $color1 ?>;
 }
 
-.cmn-btn:hover {
+.btn--base:hover, .cmn-btn:hover {
     color: #ffffff;
     background-color: <?php echo $color2 ?>;
 }
 
-.cmn-btn:active {
+.btn--base:active, .cmn-btn:active {
     color: #ffffff;
     background-color: <?php echo $color1 ?> !important;
 }
 
-.cmn-btn:focus {
+.btn--base:focus, .cmn-btn:focus {
     color: #ffffff;
     background-color: <?php echo $color1 ?> !important;
+}
+
+.text--base{
+    color: <?php echo $color1 ?>;
 }
 
 .style--three:hover{
@@ -84,10 +80,6 @@
 
 .feature-card__icon {
     color: <?php echo $color1 ?>;
-}
-
-.feature-card:hover {
-    background-color: <?php echo $color1 ?>;
 }
 
 .price .single-price .part-bottom button {
@@ -147,7 +139,7 @@ a {
     border-top: 2px solid <?php echo $color1 ?>;
 }
 
-.form-control:focus {
+.form-control:focus, .form--select:focus {
     border-color: <?php echo $color1 ?>4a;
 }
 
@@ -161,9 +153,7 @@ a {
 .bg--success {
     background-color: <?php echo $color1 ?>!important;
 }
-.text--success {
-    color: <?php echo $color1 ?>!important;
-}
+
 .bb--3 {
     border-color: <?php echo $color1 ?>!important;
 }
@@ -178,3 +168,77 @@ a {
 .b-primary{
     border: 1px solid <?php echo $color1 ?>7a !important;
 }
+
+.pricing--popular{
+    border: 2px solid <?php echo $color1 ?>
+}
+
+
+
+.btn--primary {
+    background-color:<?php echo $color1 ?>!important;
+
+}
+
+
+.btn--primary:hover, .btn--primary:focus, .btn--primary:focus-visible {
+    background-color:<?php echo $color2 ?>!important;
+
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field:focus {
+  border-color:1px solid <?php echo $color1 ?>!important;
+
+}
+
+.select2-container--open .select2-selection.select2-selection--single, .select2-container--open .select2-selection.select2-selection--multiple {
+    border-color:1px solid <?php echo $color1 ?>!important;
+
+}
+
+.payment-card-title {
+ 
+  background-color: <?php echo $color1 ?>!important;
+
+}
+
+
+.payment-system-list {
+
+  --hover-border-color: <?php echo $color1 ?>!important;
+
+
+}
+
+
+.payment-system-list.is-scrollable::-webkit-scrollbar-thumb {
+  background-color:<?php echo $color1 ?>!important;
+
+}
+
+.payment-item:has(.payment-item__radio:checked) .payment-item__check {
+  border: 3px solid <?php echo $color1 ?>!important;
+}
+
+.payment-item__check {
+
+  border: 1px solid <?php echo $color1 ?>!important;
+
+
+}
+
+
+
+.btn.disabled, .btn:disabled, fieldset:disabled .btn {
+  
+  background-color:<?php echo $color1 ?>!important;
+
+}
+
+.daterangepicker td.active, .daterangepicker td.active:hover, .daterangepicker .ranges li.active {
+    background-color: <?php echo $color1 ?>!important;
+}
+
+.form-disabled-text svg path{
+            fill:<?php echo $color1 ?>!important;
+         }
